@@ -1,0 +1,139 @@
+@charset "utf-8";
+
+:root {
+	--bkg: #d9fecb; 
+	/*--bkg: linear-gradient(White, #c9febb); */
+	/*--bkg: Aquamarine; */
+}
+
+html {
+    height: 100%;
+}
+
+h1, h2, h3 { 
+	font-family: "Arial", "Helvetica";
+}
+
+a:link { color: #000000; }
+a:visited { color: #767676; }
+body {
+    height: 100%;	
+	background: var(--bkg);
+    background-repeat: no-repeat;
+    background-attachment: fixed;	
+	margin-left: 1em;
+	max-width: 65em;
+	}
+table, th, td { border:1px solid; border-collapse:collapse; border-spacing:2px; padding:2px;}
+.nav_bar{
+	display: grid; 
+	grid-auto-flow: 
+	column;
+}
+.nav_item {
+	/*vertical-align: middle;*/
+	margin: 1em;
+	max-width: 10em;
+}
+a.navi {
+	background-color: #f0f0f0;
+	font-size:1.2em; 
+	color:#000000; 
+	vertical-align: middle;
+	margin: 1em;
+}
+a.clipname {text-decoration: none; }
+
+.container {
+       display: -webkit-flex;
+       display: flex;
+       -webkit-flex-flow: row wrap;
+       flex-flow: row wrap;
+     }
+     
+ .c2 {
+	border-top-width: 15px;
+	border-top-style:solid;
+	/*border-top-color:var(--bkg);*/
+ }
+
+.c1, .c2, .c3 {
+   color: black;
+   position:relative;
+}
+
+.ca {
+		width:100%;
+}
+
+.audio {
+	background-color: transparent;
+	vertical-align: middle;
+	border-style: none;
+	margin:3px;
+}
+a.audio {
+	color: #ffffff;
+}
+
+@media (max-width: 776px) {
+	.c1, .c11, .c12, .ctab {
+		display:none;
+	}
+	.cplay {
+		width: 100%
+	}
+	.c4 {
+		width: 100%;
+	}
+}
+ 
+ @media (min-width:777px) {
+	.c1 {
+		width:100%;
+		display:block;
+	}
+	.c11, .c4 {
+		display:none;
+	}
+	.c12 {
+		display:inline;
+	}
+	.ctab {
+		display: table-cell;
+	}
+	.c3 {
+		width:100%;
+	}
+ 	.cplay {
+		width: 100%
+	}
+}
+
+ @media (min-width: 800px) {
+   .c1 {
+	 width: 80%;
+	 display:block;
+   }
+   .c11 {
+	   width:20%;
+	   display:block;
+   }
+	.c12 {
+		display:inline;
+	}
+	.cplay {
+		width: 100%
+	}
+	.c4 {
+		display: none;
+	}
+}
+input {
+	margin: 3px;
+	border-style:outset;
+}
+button {
+	border-style:outset;
+	box-shadow: 0 0 5px inset grey;
+}

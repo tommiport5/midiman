@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8"/>
+<title>Sound manager</title>
+<meta content="no-cache" http-equiv="cache-control"/>
+<meta content="no-cache" http-equiv="pragma"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="/global.css">
+<script src="/ui.js"></script> 
+<script>
+function to3byte() {
+	var arr = _to3Byte(document.getElementById("lin").value);
+	document.getElementById("b0").value = arr[0];
+	document.getElementById("b1").value = arr[1];
+	document.getElementById("b2").value = arr[2];
+}
+function tolinear() {
+	var arr = [0,0,0];
+	arr[0] = parseInt(document.getElementById("b0").value);
+	arr[1] = parseInt(document.getElementById("b1").value);
+	arr[2] = parseInt(document.getElementById("b2").value);
+	document.getElementById("lin").value = threebyte2num(arr);
+
+}
+</script>
+</head>
+<body>
+<div class="container" role="main">
+<form>
+<span>
+<label for="MidiIn">
+Midi Inputs
+</label>
+<select id="MidiIn">
+</select>
+</span>
+<span>
+<label for="MidiOut">
+Midi Outputs
+</label>
+<select id="MidiOut">
+</select>
+</span>
+<span>
+<label for="MidiChan">
+Midi Channel
+</label>
+<select id="MidiChan">
+<option>1</option>
+<option>2</option>
+<option>3</option>
+<option>4</option>
+<option>5</option>
+<option>6</option>
+<option>7</option>
+<option>8</option>
+<option>9</option>
+<option>10</option>
+<option>11</option>
+<option>12</option>
+<option>13</option>
+<option>14</option>
+<option>15</option>
+<option>16</option>
+</select>
+</span>
+<span><p id="Result"></p></span>
+<span><label>linear</label><input type="number" id="lin"><label>3 byte</label><input type="number" id="b0"><input type="number" id="b1"><input type="number" id="b2"></span>
+<div><span><label>bank</label><input type="number" id="bank"><label>patch</label><input type="number" id="patch"></span></div>
+<div><button type="button" class="nav_item" id="checkbutton">Check</button><button type="button" class="nav_item" id="quitbutton">quit</button>
+<button type="button" class="nav_item" onclick="to3byte()">to 3byte</button><button type="button" class="nav_item" onclick="tolinear()">to linear</button>
+<button type="button" class="nav_item" id="readbutton">Read Patch</button><button type="button" class="nav_item" id="readMem">Read Memory</button></div>
+</form>
+</div>
+<table>
+<th></th><th colspan="8">Patch</th>
+<tr><td rowspan=8>Bank</td>
+<td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td>
+</tr>
+<tr><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
+<tr><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
+<tr><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
+<tr><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
+<tr><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
+<tr><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
+<tr><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
+</table>
+</body>
+</html>
