@@ -108,6 +108,24 @@ function readMemory() {
 	});
 }
 
+function readFile() {
+	var fl = new FormData(document.getElementById("readForm")).get("fname");
+	var rd = new FileReader();
+	rd.onloadend = function() {
+		getJsonParam('http://localhost:' + port + '/readFile', JSON.stringify(rd.result), (data) => {
+			document.getElementById("Result").innerText = data.result;
+			if (data.names) {
+				var arr = document.getElementsByClassName("pname");
+				var i = 0;
+				data.names.forEach((dt) => {
+					arr[i++].innerText = dt;
+				});
+			}
+		});
+	};
+	rd.readAsDataURL(fl);
+}
+
 function threebyte2num(arr) {
 	return 0x80*(0x80*arr[0] + arr[1]) + arr[2];
 }
@@ -146,6 +164,7 @@ function displayForm() {
 	document.getElementById("readbutton").addEventListener('click',readPatch);
 	document.getElementById("readMem").addEventListener('click',readMemory);
 	document.getElementById("quitbutton").addEventListener('click',quit);
+	document.getElementById("readFile").addEventListener('click',readFile);
 	window.addEventListener('beforeunload',forcequit);
 }
 

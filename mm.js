@@ -137,13 +137,33 @@ handlePost('/read', (postdat, res) => {
 handlePost('/readMemory', (postdat, res) => {
 	var roland = new Roland(WebMidi.getInputByName(postdat.MidiIn), WebMidi.getOutputByName(postdat.MidiOut), postdat.MidiChan-1);
 	try {
-		roland.readMemory().then((arr) => {
+		roland.readMemoryFromSynth().then((arr) => {
 			var result = {result:"Successfully read memory", names:arr};
 			res.setHeader('Content-Type', 'text/json; charset=utf-8');
 			res.setHeader("cache-control", "no-store");
 			res.end(JSON.stringify(result));
 		}).catch((err) =>{
 			let Msg = 'Could not read memory, ' + err;
+			res.setHeader('Content-Type', 'text/json; charset=utf-8');
+			res.setHeader("cache-control", "no-store");
+			res.end('{"result":"' + Msg + '"}');
+		});
+	} catch(e) {
+		res.setHeader('Content-Type', 'text/json; charset=utf-8');
+		res.setHeader("cache-control", "no-store");
+		res.end('{"result":"' + e + '"}');
+	}	
+});
+
+handlePost('/readFile', (postdat, res) => {
+	try {
+		Roland.readMemoryFromDataURL(postdat).then((answ) => {
+			var result = {result:"Successfully read file", names:answ};
+			res.setHeader('Content-Type', 'text/json; charset=utf-8');
+			res.setHeader("cache-control", "no-store");
+			res.end(JSON.stringify(result));
+		}).catch((err) =>{
+			let Msg = 'Could not read file, ' + err;
 			res.setHeader('Content-Type', 'text/json; charset=utf-8');
 			res.setHeader("cache-control", "no-store");
 			res.end('{"result":"' + Msg + '"}');

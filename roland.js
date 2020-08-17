@@ -5,7 +5,7 @@
  
 var Sysex = require('./sysex');
 var Patch = require('./rolandpatch');
-
+const Base64 = require('Base64');
 
 module.exports = class Roland {
 	constructor(MIn, MOut, MChan) {
@@ -34,13 +34,13 @@ module.exports = class Roland {
 		return Ret;
 	}
 	
-	readMemory() {
+	readMemoryFromSynth() {
 		return new Promise((resolve,reject) => {
 			Patch.waitForWSD(this.mIn).then((sx) => {
 				console.log(`received 0x${sx.command.toString(16)}`);
-				Patch.readMemory(this.mIn, this.mOut, this.mChan).then((pat) => {
+				Patch.readMemoryFromSynth(this.mIn, this.mOut, this.mChan).then((pat) => {
 					var Names = [];
-					this.Patches = pat;
+					this.SynthPatches = pat;
 					pat.forEach((pt) => {
 						Names.push(pt.patchname);
 					});
@@ -53,5 +53,29 @@ module.exports = class Roland {
 			});
 		});
 	}
+	
+	static readMemoryFromDataURL(postdat) {
+		return new Promise((resolve,reject) => {
+			var start = postdat.indexOf('base64,');
+			if (start == -1) reject("base64 error");
+			try {
+				var Names = [];
+				// why doen't this work?
+				// var Dat = Uint8Array.from(Base64.atob(postdat.slice(start+7)));
+				var Dat = Base64.atob(postdat.slice(start+7));
+				var DatArr = new Array(Dat.length);
+				for (var i=0; i< Dat.length; i++)
+					DatArr[i] = Dat.charCodeAt(i);
+				this.FilePatches = Patch.readMemoryFromBlob(DatArr);
+				this.FilePatches.forEach((pt) => {
+					Names.push(pt.patchname);
+				});
+				resolve(Names);
+			} catch (e) {
+				reject(e);
+			}
+		});
+	}
+		
 }
  

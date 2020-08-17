@@ -172,6 +172,10 @@ module.exports = class RolandPatch {
 		});
 	}
 
+	/*
+	 * fillResult
+	 * fills 64 Rolandpatches with the data from a midi sysex
+	 */
 	static _fillResult(rw, accu) {
 		if (accu.pnum >= 64) return false;		// ignore reverb for now
 		let threeb = rw.slice(0,3);
@@ -252,7 +256,7 @@ module.exports = class RolandPatch {
 	 * (yet without reverb data)
 	 * The D50 must initiate the transfer with a WSD telegram, which is awaited in waitForWSD.
 	 */
-	static async readMemory(mIn, mOut, mChan) {
+	static async readMemoryFromSynth(mIn, mOut, mChan) {
 		var Accu = {Result: new Array(64), 
 			fs: FillState.up1,
 			pnum: 0,
@@ -296,5 +300,30 @@ module.exports = class RolandPatch {
 			throw e;
 		}			
 	}
+
+	static readMemoryFromBlob(fbuf) {
+		var Accu = {Result: new Array(64), 
+			fs: FillState.up1,
+			pnum: 0,
+			Current: new RolandPatch,
+			overflow: [], 
+			expected: 32768
+		};
+		
+		var som;
+		var eom;
+		if (fbuf[0] != 0xf0) throw "Not a sysex file";
+		som = 1;
+		while (som < fbuf.length) {
+			eom = fbuf.indexOf(0xf7, som);
+			RolandPatch._fillResult(fbuf.slice(som+4, eom-1),Accu);
+			if (eom+1 < fbuf.length && fbuf[eom+1] != 0xf0) 
+				throw "Syntax error in sysex file";
+			som = eom+2;
+		}
+		return Accu.Result;
+	}
 }
+		
+
 
