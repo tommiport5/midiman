@@ -8,37 +8,38 @@ var Patch = require('./rolandpatch');
 const Base64 = require('Base64');
 
 module.exports = class Roland {
-	constructor(MIn, MOut, MChan) {
-		this.mIn = MIn;
-		this.mOut = MOut;
-		this.mChan = MChan;
-	}
+	// we only need these data for two functions => make it parameters
+	// constructor(MIn, MOut, MChan) {
+		// this.mIn = MIn;
+		// this.mOut = MOut;
+		// this.mChan = MChan;
+	// }
 	
 	get sysexData() {
 		return this.DataSet.raw;
 	}
 	
-	getCurrentPatchName() {
+	getCurrentPatchName(mIn, mOut, mChan) {
 		var RequestData = new Sysex();
 		this.DataSet = new Sysex();
 
-		var Ret = this.DataSet.listen(this.mIn);
+		var Ret = this.DataSet.listen(mIn);
 		RequestData.brand = 0x41;
-		RequestData.channel = this.mChan;
+		RequestData.channel = mChan;
 		RequestData.model = 0x14;
 		RequestData.command = 0x11;
 		RequestData.append(Patch.num2threebyte(384));		
 		RequestData.append(Patch.num2threebyte(18));
 		console.log("sending >>" + RequestData.sendData + "<<");
-		RequestData.send(this.mOut);
+		RequestData.send(mOut);
 		return Ret;
 	}
 	
-	readMemoryFromSynth() {
+	readMemoryFromSynth(mIn, mOut, mChan) {
 		return new Promise((resolve,reject) => {
-			Patch.waitForWSD(this.mIn).then((sx) => {
+			Patch.waitForWSD(mIn).then((sx) => {
 				console.log(`received 0x${sx.command.toString(16)}`);
-				Patch.readMemoryFromSynth(this.mIn, this.mOut, this.mChan).then((pat) => {
+				Patch.readMemoryFromSynth(mIn, mOut, mChan).then((pat) => {
 					var Names = [];
 					this.SynthPatches = pat;
 					pat.forEach((pt) => {
@@ -54,7 +55,7 @@ module.exports = class Roland {
 		});
 	}
 	
-	static readMemoryFromDataURL(postdat) {
+	readMemoryFromDataURL(postdat) {
 		return new Promise((resolve,reject) => {
 			var start = postdat.indexOf('base64,');
 			if (start == -1) reject("base64 error");

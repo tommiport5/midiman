@@ -2,6 +2,9 @@
 
 const port = 10532;
 
+var SynthPatches;
+var FilePatches;
+
 function forcequit() {
   var xhttp = new XMLHttpRequest();
   xhttp.open("GET", 'http://localhost:' + port + '/forcequit', true);
@@ -89,6 +92,20 @@ function readPatch() {
 		document.getElementById("Result").innerText = data.result;
 	});
 }
+
+function displayNames(tab, src) {
+	var arr = document.getElementsByClassName(tab);
+	var i = 0;
+	if (src) {
+		src.forEach((dt) => {
+			arr[i++].innerText = dt;
+		});
+	} 
+	for (;i<arr.length;) {
+		arr[i++].innerText = "";
+	}
+}
+	
 	
 function readMemory() {
 	var Settings = {MidiIn:document.getElementById("MidiIn").value,
@@ -99,11 +116,8 @@ function readMemory() {
 	getJsonParam('http://localhost:' + port +'/readMemory', JSON.stringify(Settings), (data) => {
 		document.getElementById("Result").innerText = data.result;
 		if (data.names) {
-			var arr = document.getElementsByClassName("pname");
-			var i = 0;
-			data.names.forEach((dt) => {
-				arr[i++].innerText = dt;
-			});
+			displayNames("spname", data.names);
+			SynthPatches = data.names;
 		}
 	});
 }
@@ -115,15 +129,21 @@ function readFile() {
 		getJsonParam('http://localhost:' + port + '/readFile', JSON.stringify(rd.result), (data) => {
 			document.getElementById("Result").innerText = data.result;
 			if (data.names) {
-				var arr = document.getElementsByClassName("pname");
-				var i = 0;
-				data.names.forEach((dt) => {
-					arr[i++].innerText = dt;
-				});
+				displayNames("fpname", data.names);
+				FilePatches = data.names;
 			}
 		});
 	};
 	rd.readAsDataURL(fl);
+}
+
+function swap() {
+	let tmp = SynthPatches;
+	SynthPatches = FilePatches;
+	FilePatches = tmp;
+	displayNames("spname", SynthPatches);	
+	displayNames("fpname", FilePatches);
+	// TODO: tell the server to swap
 }
 
 function threebyte2num(arr) {
@@ -161,10 +181,11 @@ function displayForm() {
 		});
 	});
 	document.getElementById("checkbutton").addEventListener('click',checkDevice);
-	document.getElementById("readbutton").addEventListener('click',readPatch);
+	//document.getElementById("readbutton").addEventListener('click',readPatch);
 	document.getElementById("readMem").addEventListener('click',readMemory);
 	document.getElementById("quitbutton").addEventListener('click',quit);
 	document.getElementById("readFile").addEventListener('click',readFile);
+	document.getElementById("swapbutton").addEventListener('click',swap);
 	window.addEventListener('beforeunload',forcequit);
 }
 

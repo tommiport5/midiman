@@ -10,6 +10,8 @@ var WebMidi = new require('webmidi');
 var Roland = require('./roland.js');
 var Patch = require('./rolandPatch.js');
 
+var RolandSynth = new Roland();
+
 const hostname = 'localhost';
 const port = 10532;
 const src_dir = 'file:///C:/Users/Dad/Documents/MidiMan';
@@ -91,9 +93,12 @@ app.get('/quit', function (req, res) {
 handlePost('/check', (postdat, res) => {
 	var Msg;
 	var PatchName;
-	var roland = new Roland(WebMidi.getInputByName(postdat.MidiIn), WebMidi.getOutputByName(postdat.MidiOut), postdat.MidiChan-1);
+	//var roland = new Roland(WebMidi.getInputByName(postdat.MidiIn), WebMidi.getOutputByName(postdat.MidiOut), postdat.MidiChan-1);
+	mIn = WebMidi.getInputByName(postdat.MidiIn);
+	mOut = WebMidi.getOutputByName(postdat.MidiOut);
+	mChan = postdat.MidiChan-1;
 	try {
-		roland.getCurrentPatchName().then((sysx) => {
+		RolandSynth.getCurrentPatchName(mIn, mOut, mChan).then((sysx) => {
 				let PatchName =  Patch.toStr(sysx.raw.slice(3));
 				let Msg = 'Found D50, current patch: ' + PatchName;
 				res.setHeader('Content-Type', 'text/json; charset=utf-8');
@@ -113,7 +118,11 @@ handlePost('/check', (postdat, res) => {
 });
 
 handlePost('/read', (postdat, res) => {
-	var patch = new Patch(WebMidi.getInputByName(postdat.MidiIn), WebMidi.getOutputByName(postdat.MidiOut), postdat.MidiChan-1);
+	//var patch = new Patch(WebMidi.getInputByName(postdat.MidiIn), WebMidi.getOutputByName(postdat.MidiOut), postdat.MidiChan-1);
+	mIn = WebMidi.getInputByName(postdat.MidiIn);
+	mOut = WebMidi.getOutputByName(postdat.MidiOut);
+	mChan = postdat.MidiChan-1;
+	var patch = new Patch(mIn, mOut, mChan);
 	try {	
 		patch.readFromSynth(parseInt(postdat.bank-1), parseInt(postdat.pnum-1)).then((_ign) =>{
 			let ToneNames =  patch.tonenames;
@@ -135,9 +144,11 @@ handlePost('/read', (postdat, res) => {
 });
 
 handlePost('/readMemory', (postdat, res) => {
-	var roland = new Roland(WebMidi.getInputByName(postdat.MidiIn), WebMidi.getOutputByName(postdat.MidiOut), postdat.MidiChan-1);
+	mIn = WebMidi.getInputByName(postdat.MidiIn);
+	mOut = WebMidi.getOutputByName(postdat.MidiOut);
+	mChan = postdat.MidiChan-1;
 	try {
-		roland.readMemoryFromSynth().then((arr) => {
+		RolandSynth.readMemoryFromSynth(mIn, mOut, mChan).then((arr) => {
 			var result = {result:"Successfully read memory", names:arr};
 			res.setHeader('Content-Type', 'text/json; charset=utf-8');
 			res.setHeader("cache-control", "no-store");
@@ -157,7 +168,7 @@ handlePost('/readMemory', (postdat, res) => {
 
 handlePost('/readFile', (postdat, res) => {
 	try {
-		Roland.readMemoryFromDataURL(postdat).then((answ) => {
+		RolandSynth.readMemoryFromDataURL(postdat).then((answ) => {
 			var result = {result:"Successfully read file", names:answ};
 			res.setHeader('Content-Type', 'text/json; charset=utf-8');
 			res.setHeader("cache-control", "no-store");

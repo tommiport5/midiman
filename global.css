@@ -25,6 +25,23 @@ body {
 	max-width: 65em;
 	}
 table, th, td { border:1px solid; border-collapse:collapse; border-spacing:2px; padding:2px;}
+.fpname, .spname {
+	min-width: 10em;
+	height: 10px;
+}
+table {
+	margin:3px;
+}
+th.frameless {
+	border-top-color: var(--bkg);
+	border-left-color: var(--bkg);
+}
+
+.framed {
+	border: 1px solid black;
+	margin:3px;
+}
+	
 .nav_bar{
 	display: grid; 
 	grid-auto-flow: 
@@ -51,30 +68,6 @@ a.clipname {text-decoration: none; }
        flex-flow: row wrap;
      }
      
- .c2 {
-	border-top-width: 15px;
-	border-top-style:solid;
-	/*border-top-color:var(--bkg);*/
- }
-
-.c1, .c2, .c3 {
-   color: black;
-   position:relative;
-}
-
-.ca {
-		width:100%;
-}
-
-.audio {
-	background-color: transparent;
-	vertical-align: middle;
-	border-style: none;
-	margin:3px;
-}
-a.audio {
-	color: #ffffff;
-}
 
 @media (max-width: 776px) {
 	.c1, .c11, .c12, .ctab {
