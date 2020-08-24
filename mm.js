@@ -90,6 +90,13 @@ app.get('/quit', function (req, res) {
   console.log('server closed and webmidi ended');
 });
 
+app.get('/swap',function (req,res) {
+	RolandSynth.swap();
+	res.setHeader('Content-Type', 'text/json; charset=utf-8');
+	res.end('"Ok"');
+});
+
+
 handlePost('/check', (postdat, res) => {
 	var Msg;
 	var PatchName;
@@ -166,6 +173,29 @@ handlePost('/readMemory', (postdat, res) => {
 	}	
 });
 
+handlePost('/writeMemory', (postdat, res) => {
+	mIn = WebMidi.getInputByName(postdat.MidiIn);
+	mOut = WebMidi.getOutputByName(postdat.MidiOut);
+	mChan = postdat.MidiChan-1;
+	try {
+		RolandSynth.writeMemoryToSynth(mIn, mOut, mChan).then((arr) => {
+			var result = {result:"Memory successfully written"};
+			res.setHeader('Content-Type', 'text/json; charset=utf-8');
+			res.setHeader("cache-control", "no-store");
+			res.end(JSON.stringify(result));
+		}).catch((err) =>{
+			let Msg = 'Could not write memory, ' + err;
+			res.setHeader('Content-Type', 'text/json; charset=utf-8');
+			res.setHeader("cache-control", "no-store");
+			res.end('{"result":"' + Msg + '"}');
+		});
+	} catch(e) {
+		res.setHeader('Content-Type', 'text/json; charset=utf-8');
+		res.setHeader("cache-control", "no-store");
+		res.end('{"result":"' + e + '"}');
+	}	
+});
+
 handlePost('/readFile', (postdat, res) => {
 	try {
 		RolandSynth.readMemoryFromDataURL(postdat).then((answ) => {
@@ -184,6 +214,20 @@ handlePost('/readFile', (postdat, res) => {
 		res.setHeader("cache-control", "no-store");
 		res.end('{"result":"' + e + '"}');
 	}	
+});
+
+app.get('/writeFile.syx', (req, res) => {
+	RolandSynth.writeMemoryToData().then((answ) => {
+		//var result = {result:"Successfully wrote file", names:answ};
+		res.setHeader('Content-Type', 'audio/x-midi');
+		res.setHeader("cache-control", "no-store");
+		res.end(answ);
+	}).catch((err) =>{
+		let Msg = 'Could not read file, ' + err;
+		res.setHeader('Content-Type', 'text/json; charset=utf-8');
+		res.setHeader("cache-control", "no-store");
+		res.end('{"result":"' + Msg + '"}');
+	});
 });
 
 

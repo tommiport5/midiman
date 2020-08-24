@@ -30,7 +30,6 @@ module.exports = class Roland {
 		RequestData.command = 0x11;
 		RequestData.append(Patch.num2threebyte(384));		
 		RequestData.append(Patch.num2threebyte(18));
-		console.log("sending >>" + RequestData.sendData + "<<");
 		RequestData.send(mOut);
 		return Ret;
 	}
@@ -38,7 +37,7 @@ module.exports = class Roland {
 	readMemoryFromSynth(mIn, mOut, mChan) {
 		return new Promise((resolve,reject) => {
 			Patch.waitForWSD(mIn).then((sx) => {
-				console.log(`received 0x${sx.command.toString(16)}`);
+				// console.log(`received 0x${sx.command.toString(16)}`);
 				Patch.readMemoryFromSynth(mIn, mOut, mChan).then((pat) => {
 					var Names = [];
 					this.SynthPatches = pat;
@@ -52,6 +51,27 @@ module.exports = class Roland {
 			}).catch ((err) => {
 				reject(err);
 			});
+		});
+	}
+
+	writeMemoryToSynth(mIn, mOut, mChan) {
+		// Sysex.trace = true;
+		return new Promise((resolve, reject) => {
+			if (this.SynthPatches == undefined) return Promise.reject(new Error("No patches loaded"));
+			Patch.waitForRQD(mIn).then((sx) => {
+				let Ret = Patch.waitForACK(mIn);
+				Patch.anounceAllPatches(mOut, mChan);
+				return Ret;
+			}).then((sx) => {
+				return Patch.writeMemoryToSynth(this.SynthPatches, mIn, mOut, mChan);
+			}).then(() => {
+				resolve("Ok");
+			}).catch ((e) => {
+				reject(new Error(e));
+			});
+			// must return a Promise here, or the caller will break on 'then'
+			// this is, what the return statement above does.
+			// the last then or the catch resolve or reject the returned promise
 		});
 	}
 	
@@ -76,6 +96,25 @@ module.exports = class Roland {
 				reject(e);
 			}
 		});
+	}
+	
+	writeMemoryToData() {
+		if (this.FilePatches == undefined) return Promise.reject(new Error("No patches loaded"));
+		return new Promise((resolve,reject) => {
+			try {
+				var DatArr = Patch.writeMemoryToBlob(this.FilePatches);
+				//var Dat = Base64.btoa(DatArr);
+				resolve(DatArr);
+			} catch (e) {
+				reject(e);
+			}
+		});
+	}
+	
+	swap() {
+		var tmp = this.FilePatches;
+		this.FilePatches = this.SynthPatches;
+		this.SynthPatches = tmp;
 	}
 		
 }

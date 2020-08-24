@@ -126,7 +126,18 @@ input {
 	margin: 3px;
 	border-style:outset;
 }
+
 button {
 	border-style:outset;
 	box-shadow: 0 0 5px inset grey;
+}
+a.button, a.button:visited {
+	background-color: #ececec;
+	color: Black;
+	padding: 3px;
+	font-size: 80%;
+	text-decoration-line: none;
+	font-family: Helvetica, Arial, Geneva, sans-serif;
+	border-style:outset;
+	box-shadow: 0 0 2px inset grey;
 }

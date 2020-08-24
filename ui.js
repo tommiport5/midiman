@@ -122,6 +122,17 @@ function readMemory() {
 	});
 }
 
+function writeMemory() {
+	var Settings = {MidiIn:document.getElementById("MidiIn").value,
+					MidiOut:document.getElementById("MidiOut").value,
+					MidiChan:document.getElementById("MidiChan").value
+					};
+	document.getElementById("Result").innerText = 'On the D50 press "Data Transfer/B.Load/Enter" and wait while the D50 displays "Loading"';
+	getJsonParam('http://localhost:' + port +'/writeMemory', JSON.stringify(Settings), (data) => {
+		document.getElementById("Result").innerText = data.result;
+	});
+}
+
 function readFile() {
 	var fl = new FormData(document.getElementById("readForm")).get("fname");
 	var rd = new FileReader();
@@ -141,9 +152,10 @@ function swap() {
 	let tmp = SynthPatches;
 	SynthPatches = FilePatches;
 	FilePatches = tmp;
-	displayNames("spname", SynthPatches);	
-	displayNames("fpname", FilePatches);
-	// TODO: tell the server to swap
+	getJsonData('/swap', function() {
+		displayNames("spname", SynthPatches);	
+		displayNames("fpname", FilePatches);
+	});
 }
 
 function threebyte2num(arr) {
@@ -183,8 +195,10 @@ function displayForm() {
 	document.getElementById("checkbutton").addEventListener('click',checkDevice);
 	//document.getElementById("readbutton").addEventListener('click',readPatch);
 	document.getElementById("readMem").addEventListener('click',readMemory);
+	document.getElementById("writeMem").addEventListener('click',writeMemory);
 	document.getElementById("quitbutton").addEventListener('click',quit);
 	document.getElementById("readFile").addEventListener('click',readFile);
+	//document.getElementById("writeile").addEventListener('click',writeFile);
 	document.getElementById("swapbutton").addEventListener('click',swap);
 	window.addEventListener('beforeunload',forcequit);
 }

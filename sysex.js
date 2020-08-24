@@ -4,6 +4,7 @@
  * based on webmidi
  */
  
+var _trace = false;
 
 module.exports = class  Sysex {
 	constructor() {
@@ -12,6 +13,10 @@ module.exports = class  Sysex {
 		this._channel = 0;
 		this._model = 0;
 		this._command = 0;
+	}
+	
+	static set trace(trc) {
+		_trace = trc;
 	}
 	
 	get raw() {
@@ -31,13 +36,19 @@ module.exports = class  Sysex {
 	get sendData() {
 		if (this.rawData.length == 0) {
 			// legal, also omit checksum
-			return [this._brand, this._channel, this._model, this._command].map((val) => {
-				return "0x" + val.toString(16);
-			});
+			return [this._brand, this._channel, this._model, this._command, 0xf7]
 		} else {
 			return [this._brand, this._channel, this._model, this._command].concat(this.rawData, [ -this._checksum() & 0x7f ]).map((val) => {
 				return "0x" + val.toString(16);
 			});
+		}
+	}
+	
+	get blob() {
+		if (this.rawData.length == 0) {
+			return [ 0xf0, this._brand, this._channel, this._model, this._command]	
+		} else {
+			return [0xf0, this._brand, this._channel, this._model, this._command].concat(this.rawData, [ -this._checksum() & 0x7f, 0xf7]);
 		}
 	}
 	
@@ -64,6 +75,7 @@ module.exports = class  Sysex {
 	}
 	
 	send(out) {
+		if (_trace) console.log("sending sysex:   " + this.sendData.slice(0,16));
 		if (this.rawData.length == 0) {
 			out.sendSysex(this._brand, [this._channel, this._model, this._command]);
 		}else {
@@ -83,6 +95,7 @@ module.exports = class  Sysex {
 					// A UInt8Array is not an array, so it has no shift() member :-(
 					try {
 						This.rawData = Array.from(ev.data);
+						if (_trace) console.log("receiving sysex: " + This.rawData.slice(1,17).map((val) => {return "0x" + val.toString(16);})); 
 						This.rawData.shift();
 						This._brand = This.rawData.shift();
 						This._channel = This.rawData.shift();
@@ -115,3 +128,4 @@ module.exports = class  Sysex {
 		});
 	}
 }
+
