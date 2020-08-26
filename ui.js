@@ -174,6 +174,52 @@ function _to3Byte(num) {
 function patch2Mem(bank, pn) {
 	return threebyte2num([2,0,0]) + (bank*8+pn)*448;
 }
+
+function allowDrop(ev) {
+	ev.preventDefault();
+}
+
+function dragStart(ev) {
+	ev.dataTransfer.setData("text", ev.target.innerText);
+	ev.dataTransfer.setData("id", ev.target.id);
+}
+
+function drop(ev) {
+	ev.preventDefault();
+	let src_id = ev.dataTransfer.getData("id");
+	let src_txt = ev.dataTransfer.getData("text");
+	let dest_id = ev.target.id;
+	let dest_txt = ev.target.text;
+	// alert('Dragging from ' + src_id + ' (' + src_txt + ') ' + ' to ' + dest_id + ' (' + dest_txt + ') ');
+	var Settings = {
+		from: src_id,
+		to: dest_id
+	};
+	getJsonParam('http://localhost:' + port +'/move', JSON.stringify(Settings), (answ) => {
+		if (answ.result == 'Ok') {
+			document.getElementById(dest_id).innerText = src_txt;
+		} else {
+			document.getElementById("Result").innerText = answ.result;
+		}
+	});
+}
+
+function prepareDnd() {
+	var i;
+	var arr = document.getElementsByClassName("spname");
+	for (i=0; i < arr.length; i++) {
+		arr[i].setAttribute("draggable", true);
+		arr[i].id = "s" + i;
+		arr[i].setAttribute("ondragstart","dragStart(event)");
+	}
+	arr = document.getElementsByClassName("fpname");
+	for (i=0; i < arr.length; i++) {
+		arr[i].setAttribute("draggable", true);
+		arr[i].id = "f" + i;
+		arr[i].setAttribute("ondragstart","dragStart(event)");
+	}
+	
+}
 	
 function displayForm() {
 	var sel1 = document.getElementById("MidiOut");
@@ -198,8 +244,8 @@ function displayForm() {
 	document.getElementById("writeMem").addEventListener('click',writeMemory);
 	document.getElementById("quitbutton").addEventListener('click',quit);
 	document.getElementById("readFile").addEventListener('click',readFile);
-	//document.getElementById("writeile").addEventListener('click',writeFile);
 	document.getElementById("swapbutton").addEventListener('click',swap);
+	prepareDnd();
 	window.addEventListener('beforeunload',forcequit);
 }
 

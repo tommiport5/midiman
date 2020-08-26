@@ -2,8 +2,6 @@
 
 :root {
 	--bkg: #d9fecb; 
-	/*--bkg: linear-gradient(White, #c9febb); */
-	/*--bkg: Aquamarine; */
 }
 
 html {
@@ -17,13 +15,23 @@ h1, h2, h3 {
 a:link { color: #000000; }
 a:visited { color: #767676; }
 body {
+	display: grid;
     height: 100%;	
 	background: var(--bkg);
     background-repeat: no-repeat;
     background-attachment: fixed;	
 	margin-left: 1em;
-	max-width: 65em;
 	}
+
+#Result, #synth, #file, #quitbutton {
+	grid-column: 1 / 3;
+}
+
+#c {
+	max-width: 18em;
+	justify-self: end;
+}
+
 table, th, td { border:1px solid; border-collapse:collapse; border-spacing:2px; padding:2px;}
 .fpname, .spname {
 	min-width: 10em;
@@ -38,8 +46,10 @@ th.frameless {
 }
 
 .framed {
+	min-width: 10em;
+	min-height: 1em;
 	border: 1px solid black;
-	margin:3px;
+	margin: 3px;
 }
 	
 .nav_bar{
@@ -48,7 +58,6 @@ th.frameless {
 	column;
 }
 .nav_item {
-	/*vertical-align: middle;*/
 	margin: 1em;
 	max-width: 10em;
 }
@@ -61,13 +70,20 @@ a.navi {
 }
 a.clipname {text-decoration: none; }
 
+
+.container {
+    display: grid;
+	grid-template-columns: 2fr 1fr;
+	gap: 1em;	
+}
+/*
 .container {
        display: -webkit-flex;
        display: flex;
        -webkit-flex-flow: row wrap;
        flex-flow: row wrap;
      }
-     
+*/   
 
 @media (max-width: 776px) {
 	.c1, .c11, .c12, .ctab {
@@ -124,7 +140,8 @@ a.clipname {text-decoration: none; }
 }
 input {
 	margin: 3px;
-	border-style:outset;
+	border-width: 1px;
+	border-style:solid;
 }
 
 button {

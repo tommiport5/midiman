@@ -246,7 +246,7 @@ module.exports = class RolandPatch {
 			}
 			switch (accu.fs) {
 				case FillState.up1:
-					if (accu.Result[accu.pnum] == undefined) accu.Result[accu.pnum] = new RolandPatch;
+					if (accu.Result[accu.pnum] == undefined) accu.Result[accu.pnum] = new RolandPatch();
 					accu.Result[accu.pnum].upd1 = raw.splice(0,64);
 					accu.fs = FillState.up2;
 					break;

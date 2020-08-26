@@ -90,12 +90,17 @@ app.get('/quit', function (req, res) {
   console.log('server closed and webmidi ended');
 });
 
-app.get('/swap',function (req,res) {
+app.get('/swap',function (postdat,res) {
 	RolandSynth.swap();
 	res.setHeader('Content-Type', 'text/json; charset=utf-8');
 	res.end('"Ok"');
 });
 
+
+handlePost('/move',function (req,res) {
+	res.setHeader('Content-Type', 'text/json; charset=utf-8');
+res.end(JSON.stringify({result:RolandSynth.move(req.from, req.to)}));
+});
 
 handlePost('/check', (postdat, res) => {
 	var Msg;

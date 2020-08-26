@@ -27,14 +27,14 @@ function tolinear() {
 </head>
 <body>
 <div class="container" role="main">
-<form>
 <div>
-<span><label>linear</label><input type="number" id="lin"><label>3 byte</label><input type="number" id="b0"><input type="number" id="b1"><input type="number" id="b2"></span>
+<label>linear</label><input type="number" id="lin"><label>3 byte</label><input type="number" id="b0"><input type="number" id="b1"><input type="number" id="b2">
 <button type="button" class="nav_item" onclick="to3byte()">to 3byte</button><button type="button" class="nav_item" onclick="tolinear()">to linear</button>
 </div>
-<span><p id="Result"></p></span>
-<div class="framed">
+<p id="Result"></p>
+<div id="synth" class="framed">
 <h1>Synth</h1
+<form>
 <span>
 <label for="MidiIn">
 Midi Inputs
@@ -84,7 +84,7 @@ Midi Channel
 <button type="button" class="nav_item" id="writeMem">Write Memory</button>
 </div>
 </form>
-<table>
+<table ondrop="drop(event)" ondragover="allowDrop(event)">
 <th class="frameless"></th><th colspan="8">Patch</th>
 <tr><td rowspan=8>Bank</td>
 <td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
@@ -97,8 +97,10 @@ Midi Channel
 <tr><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
 </table>
 </div>
-<p><button type="button" id="swapbutton">Swap</button></p>
-<div class="framed">
+<div>
+<button type="button" id="swapbutton">Swap</button><label>Clipboard</label><p class="framed" id="c" ondragstart="dragStart(event)" draggable=true ondrop="drop(event)" ondragover="allowDrop(event)"></p>
+</div>
+<div class="framed" id="file">
 <h1>File</h1>
 <span>
 <form id="readForm">
@@ -108,7 +110,7 @@ Midi Channel
 <a href="http://localhost:10532/writeFile.syx" class="button" download>Write File</a>
 </form>
 </span>
-<table>
+<table ondrop="drop(event)" ondragover="allowDrop(event)">
 <th class="frameless"></th><th colspan="8">Patch</th>
 <tr><td rowspan=8>Bank</td>
 <td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>

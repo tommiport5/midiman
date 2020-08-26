@@ -8,12 +8,9 @@ var Patch = require('./rolandpatch');
 const Base64 = require('Base64');
 
 module.exports = class Roland {
-	// we only need these data for two functions => make it parameters
-	// constructor(MIn, MOut, MChan) {
-		// this.mIn = MIn;
-		// this.mOut = MOut;
-		// this.mChan = MChan;
-	// }
+	constructor() {
+		this.clipboard = new Patch();
+	}
 	
 	get sysexData() {
 		return this.DataSet.raw;
@@ -116,6 +113,59 @@ module.exports = class Roland {
 		this.FilePatches = this.SynthPatches;
 		this.SynthPatches = tmp;
 	}
-		
+	
+	
+	/*
+	_getVar(id) {
+		var ind;
+		switch (id[0]) {
+			case 'c':
+				return this.clipboard;
+			case 's':
+				ind = Number(id.substr(1)) - 1;
+				return this.SynthPatches[ind];
+			case 'f':
+				ind = Number(id.substr(1)) - 1;
+				return this.FilePatches[ind];
+		}
+	}
+
+	
+	move(from, to) {
+		var fv = this._getVar(from);
+		var tv = this._getVar(to);
+		if (fv == undefined) return "Source empty";
+		if (tv == undefined) return "Destination undefined";
+		tv = fv;
+		return "Ok";
+	}
+	*/
+	
+	_getOrSetVar(id, value) {
+		var ind;
+		switch (id[0]) {
+			case 'c':
+				if (value !== undefined) this.clipboard = value;
+				return this.clipboard;
+				break;
+			case 's':
+				ind = Number(id.substr(1));
+				if (value !== undefined) this.SynthPatches[ind] = value;
+				else return this.SynthPatches[ind];
+				break;
+			case 'f':
+				ind = Number(id.substr(1));
+				if (value !== undefined) this.FilePatches[ind] = value;
+				else return this.FilePatches[ind];
+				break;
+		}
+	}
+
+	move(from, to) {
+		if ((from[0] == 's' || to[0] == 's') && this.SynthPatches == undefined) return "SynthPatches undefined!";
+		if ((from[0] == 'f' || to[0] == 'f') && this.FilePatches == undefined) return "FilePatches undefined!";
+		this._getOrSetVar(to, this._getOrSetVar(from));
+		return "Ok";
+	}
 }
  
