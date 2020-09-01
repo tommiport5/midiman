@@ -72,16 +72,32 @@ function quit() {
 	window.open('http://localhost:' + port + '/quit','_self');
 }
 
-function checkDevice() {
+function selectInterface() {
+	var Settings = {MidiIn:document.getElementById("MidiIn").value,
+					MidiOut:document.getElementById("MidiOut").value,
+					MidiChan:document.getElementById("MidiChan").value};
+	getJsonParam('http://localhost:' + port +'/selIfc', JSON.stringify(Settings), (data) => {
+		if (data.error)
+			document.getElementById("Result").innerText = data.error;
+		else
+			document.getElementById("c").innerText = data.patch;
+	});
+}
+
+function readCurrentPatch() {
 	var Settings = {MidiIn:document.getElementById("MidiIn").value,
 					MidiOut:document.getElementById("MidiOut").value,
 					MidiChan:document.getElementById("MidiChan").value};
 	getJsonParam('http://localhost:' + port +'/check', JSON.stringify(Settings), (data) => {
-		document.getElementById("Result").innerText = data.result;
+		if (data.error)
+			document.getElementById("Result").innerText = data.error;
+		else
+			document.getElementById("c").innerText = data.patch;
 	});
 }
 
-function readPatch() {
+/*
+function readPatchByNumber() {
 	var Settings = {MidiIn:document.getElementById("MidiIn").value,
 					MidiOut:document.getElementById("MidiOut").value,
 					MidiChan:document.getElementById("MidiChan").value,
@@ -92,7 +108,7 @@ function readPatch() {
 		document.getElementById("Result").innerText = data.result;
 	});
 }
-
+*/
 function displayNames(tab, src) {
 	var arr = document.getElementsByClassName(tab);
 	var i = 0;
@@ -190,7 +206,8 @@ function drop(ev) {
 	let src_txt = ev.dataTransfer.getData("text");
 	let dest_id = ev.target.id;
 	let dest_txt = ev.target.text;
-	// alert('Dragging from ' + src_id + ' (' + src_txt + ') ' + ' to ' + dest_id + ' (' + dest_txt + ') ');
+	if (dest_id[0] == 's' ) SynthPatches[dest_id.substr(1)] = src_txt;
+	if (dest_id[0] == 'f' ) FilePatches[dest_id.substr(1)] = src_txt;
 	var Settings = {
 		from: src_id,
 		to: dest_id
@@ -222,31 +239,45 @@ function prepareDnd() {
 }
 	
 function displayForm() {
+	var Settings;
 	var sel1 = document.getElementById("MidiOut");
-	getJsonData('http://localhost:' + port +'/outputs', (data) => {
-		data.forEach((name) => {
+	getJsonData('http://localhost:' + port +'/outputs?mdl=' + Model, (answ) => {
+		answ.list.forEach((nam) => {
 			var opt = document.createElement("OPTION");
-			opt.text = name;
+			opt.text = nam;
 			sel1.add(opt);
 		});
+		Settings = answ.settings;
+		if (Settings)
+			sel1.value = Settings.MidiOut;
+		else
+			document.getElementById("Result").innerText = answ.error;			
 	});
 	var sel2 = document.getElementById("MidiIn");
-	getJsonData('http://localhost:' + port +'/inputs', (data) => {
-		data.forEach((name) => {
+	getJsonData('http://localhost:' + port +'/inputs?mdl=' + Model, (answ) => {
+		answ.list.forEach((nam) => {
 			var opt = document.createElement("OPTION");
-			opt.text = name;
+			opt.text = nam;
 			sel2.add(opt);
 		});
+		if (Settings) {
+			sel2.value = Settings.MidiIn;
+			document.getElementById("MidiChan").value = Settings.MidiChan;
+			document.title = Settings.name;
+		} else {
+			document.getElementById("Result").innerText = answ.error;			
+		}
 	});
-	document.getElementById("checkbutton").addEventListener('click',checkDevice);
-	//document.getElementById("readbutton").addEventListener('click',readPatch);
+	document.getElementById("checkbutton").addEventListener('click',readCurrentPatch);
+	document.getElementById("selInterface").addEventListener('click',selectInterface);
+	//document.getElementById("writepatch").addEventListener('click',);
 	document.getElementById("readMem").addEventListener('click',readMemory);
 	document.getElementById("writeMem").addEventListener('click',writeMemory);
-	document.getElementById("quitbutton").addEventListener('click',quit);
+	//document.getElementById("quitbutton").addEventListener('click',quit);
 	document.getElementById("readFile").addEventListener('click',readFile);
 	document.getElementById("swapbutton").addEventListener('click',swap);
 	prepareDnd();
-	window.addEventListener('beforeunload',forcequit);
+	//window.addEventListener('beforeunload',forcequit);
 }
 
 window.onload = displayForm;

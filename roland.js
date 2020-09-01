@@ -1,28 +1,62 @@
 /**
  * Class Roland
- * manages communication with a Roland Synthesizer via Sysex Messages
+ * manages communication with a Roland Synthesizer via Sysex Messages.
+ * It is a Multiton. Each instance can be identified by the triple [MidiIn, MidiOut, MidiChannel].
+ * TODO: Identify the "current instance" somehow.
  */
  
 var Sysex = require('./sysex');
 var Patch = require('./rolandpatch');
 const Base64 = require('Base64');
 
+var theInstances = [];
+
 module.exports = class Roland {
-	constructor() {
-		this.clipboard = new Patch();
+	constructor(MIn, MOut, MChan) {
+		this.mIn = MIn;
+		this.mOut = MOut;
+		this.mChan = MChan;
+		this._clipboard = new Patch();
+	}
+	
+	isThis(MIn, MOut, MChan) {
+		return this.mIn.id == MIn.id && 
+			   this.mOut.id == MOut.id && 
+			   this.mChan == MChan;
+	}
+	
+	static getInstance(MIn, MOut, MChan) {
+		var nins;
+		theInstances.forEach((ins) => {
+			if (ins.isThis(MIn, MOut, MChan)) 
+				nins = ins;
+		});
+		if (nins) return nins;
+		nins = new Roland(MIn, MOut, MChan);
+		console.log(`new Roland instance for ${MIn.id}, ${MOut.id}, ${MChan}`);
+		theInstances.unshift(nins);	// always return the last with getSingle()
+		return nins;
+	}
+	
+	static getSingle() {
+		return theInstances[0];
 	}
 	
 	get sysexData() {
 		return this.DataSet.raw;
 	}
 	
-	getCurrentPatchName(mIn, mOut, mChan) {
+	get clipboard() {
+		return this._clipboard;
+	}
+	
+	getCurrentPatchName() {
 		var RequestData = new Sysex();
 		this.DataSet = new Sysex();
 
-		var Ret = this.DataSet.listen(mIn);
+		var Ret = this.DataSet.listen(this.mIn);
 		RequestData.brand = 0x41;
-		RequestData.channel = mChan;
+		RequestData.channel = this.mChan;
 		RequestData.model = 0x14;
 		RequestData.command = 0x11;
 		RequestData.append(Patch.num2threebyte(384));		
@@ -31,11 +65,23 @@ module.exports = class Roland {
 		return Ret;
 	}
 	
-	readMemoryFromSynth(mIn, mOut, mChan) {
+	getCurrentPatch() {
+		var curpat = new Patch (this.mIn, this.mOut, this.mChan);
 		return new Promise((resolve,reject) => {
-			Patch.waitForWSD(mIn).then((sx) => {
+			curpat.readFromSynth().then((ign) => {
+				this._clipboard = curpat;
+				resolve(curpat);
+			}).catch ((e) => {
+				reject(e);
+			});
+		});
+	}
+	
+	readMemoryFromSynth() {
+		return new Promise((resolve,reject) => {
+			Patch.waitForWSD(this.mIn).then((sx) => {
 				// console.log(`received 0x${sx.command.toString(16)}`);
-				Patch.readMemoryFromSynth(mIn, mOut, mChan).then((pat) => {
+				Patch.readMemoryFromSynth(this.mIn, this.mOut, this.mChan).then((pat) => {
 					var Names = [];
 					this.SynthPatches = pat;
 					pat.forEach((pt) => {
@@ -51,16 +97,16 @@ module.exports = class Roland {
 		});
 	}
 
-	writeMemoryToSynth(mIn, mOut, mChan) {
+	writeMemoryToSynth() {
 		// Sysex.trace = true;
 		return new Promise((resolve, reject) => {
-			if (this.SynthPatches == undefined) return Promise.reject(new Error("No patches loaded"));
-			Patch.waitForRQD(mIn).then((sx) => {
-				let Ret = Patch.waitForACK(mIn);
-				Patch.anounceAllPatches(mOut, mChan);
+			if (this.SynthPatches == undefined) return reject(new Error("No patches loaded"));
+			Patch.waitForRQD(this.mIn).then((sx) => {
+				let Ret = Patch.waitForACK(this.mIn);
+				Patch.anounceAllPatches(this.mOut, this.mChan);
 				return Ret;
 			}).then((sx) => {
-				return Patch.writeMemoryToSynth(this.SynthPatches, mIn, mOut, mChan);
+				return Patch.writeMemoryToSynth(this.SynthPatches, this.mIn, this.mOut, this.mChan);
 			}).then(() => {
 				resolve("Ok");
 			}).catch ((e) => {
@@ -95,12 +141,33 @@ module.exports = class Roland {
 		});
 	}
 	
+	/**
+	 * writeMemoryToData
+	 * The current role is MIDI-Server and we create a sysex file for download to the client.
+	 * The browser will store it there.
+	 */
 	writeMemoryToData() {
-		if (this.FilePatches == undefined) return Promise.reject(new Error("No patches loaded"));
 		return new Promise((resolve,reject) => {
+			if (this.FilePatches == undefined) reject(new Error("No patches loaded"));
 			try {
 				var DatArr = Patch.writeMemoryToBlob(this.FilePatches);
-				//var Dat = Base64.btoa(DatArr);
+				resolve(DatArr);
+			} catch (e) {
+				reject(e);
+			}
+		});
+	}
+	
+	/**
+	 * writeMemoryToData
+	 * The current role is MIDI-Server and we create a sysex file for download to the client.
+	 * The browser will store it there.
+	 */
+	writePatchToData() {
+		return new Promise((resolve,reject) => {
+			if (this._clipboard == undefined) reject(new Error("Clipboard empty"));
+			try {
+				var DatArr = Patch.writePatchToBlob(this._clipboard);
 				resolve(DatArr);
 			} catch (e) {
 				reject(e);
@@ -114,39 +181,12 @@ module.exports = class Roland {
 		this.SynthPatches = tmp;
 	}
 	
-	
-	/*
-	_getVar(id) {
-		var ind;
-		switch (id[0]) {
-			case 'c':
-				return this.clipboard;
-			case 's':
-				ind = Number(id.substr(1)) - 1;
-				return this.SynthPatches[ind];
-			case 'f':
-				ind = Number(id.substr(1)) - 1;
-				return this.FilePatches[ind];
-		}
-	}
-
-	
-	move(from, to) {
-		var fv = this._getVar(from);
-		var tv = this._getVar(to);
-		if (fv == undefined) return "Source empty";
-		if (tv == undefined) return "Destination undefined";
-		tv = fv;
-		return "Ok";
-	}
-	*/
-	
 	_getOrSetVar(id, value) {
 		var ind;
 		switch (id[0]) {
 			case 'c':
-				if (value !== undefined) this.clipboard = value;
-				return this.clipboard;
+				if (value !== undefined) this._clipboard = value;
+				return this._clipboard;
 				break;
 			case 's':
 				ind = Number(id.substr(1));
@@ -168,4 +208,6 @@ module.exports = class Roland {
 		return "Ok";
 	}
 }
+
+
  

@@ -13,6 +13,7 @@ const _DAT = 0x42;
 const _ACK = 0x43;
 const _EOD = 0x45;
 const _RJC = 0x4f;
+const _RQ1 = 0x11;
 
 const FillState = Object.freeze ({
 	up1: 1,
@@ -103,7 +104,7 @@ module.exports = class RolandPatch {
 	 *readFromSynth
 	 * reads one patch into this object
 	 */
-	readFromSynth(bank, pnum) {
+	readFromSynth() {
 		var This = this;
 		return new Promise((resolve,reject) => {
 			try {
@@ -114,9 +115,9 @@ module.exports = class RolandPatch {
 				rd.brand = 0x41;
 				rd.channel = This.mChan;
 				rd.model = 0x14;
-				rd.command = _RQD;
-				rd.append(RolandPatch.num2threebyte(RolandPatch.patch2mem(bank, pnum)));		
-				rd.append(RolandPatch.num2threebyte(448));
+				rd.command = _RQ1;
+				rd.append([0,0,0]);
+				rd.append(RolandPatch.num2threebyte(256));
 				console.log("sending >>" + rd.sendData + "<<");
 				rd.send(This.mOut);
 				Ret.then((sx) => {
@@ -129,11 +130,14 @@ module.exports = class RolandPatch {
 					This.upc = sxd.slice(128,192);
 					This.lp1 = sxd.slice(192);
 					Ret = ds.listen(This.mIn);
-					ack.brand = 0x41;
-					ack.channel = This.mChan;
-					ack.model = 0x14;
-					ack.command = _ACK;
-					ack.send(This.mOut);
+					rd = new Sysex();
+					rd.brand = 0x41;
+					rd.channel = This.mChan;
+					rd.model = 0x14;
+					rd.command = _RQ1;
+					rd.append(RolandPatch.num2threebyte(256));
+					rd.append(RolandPatch.num2threebyte(192));
+					rd.send(This.mOut);
 					return Ret;
 				}).then((sx) =>{
 					//if (sx.command == _RJC) throw "rejected";
@@ -144,12 +148,6 @@ module.exports = class RolandPatch {
 					This.lp2 = sxd.slice(0,64);
 					This.lpc = sxd.slice(64,128);
 					This.pd = sxd.slice(128);
-					Ret = ds.listen(This.mIn);
-					ack.send(This.mOut);
-					return Ret;
-				}).then((sx) =>{
-					console.log("received command: " + sx.command);
-					ack.send(This.mOut);
 					this._complete = true;
 					resolve("ok");
 					return Ret;
@@ -247,7 +245,7 @@ module.exports = class RolandPatch {
 			switch (accu.fs) {
 				case FillState.up1:
 					if (accu.Result[accu.pnum] == undefined) accu.Result[accu.pnum] = new RolandPatch();
-					accu.Result[accu.pnum].upd1 = raw.splice(0,64);
+					accu.Result[accu.pnum].up1 = raw.splice(0,64);
 					accu.fs = FillState.up2;
 					break;
 				case FillState.up2:
@@ -297,67 +295,70 @@ module.exports = class RolandPatch {
 		for (;;) {
 			switch (accu.fs) {
 				case FillState.up1:
-					if (accu.Pts[accu.pnum].up1 == undefined) {
-						let dt = new Array(64);
-						dt.fill(0);
-						dat.append(dt);
-					} else {
+					if (accu.Pts[accu.pnum] && accu.Pts[accu.pnum].up1) {
 						dat.append(accu.Pts[accu.pnum].up1);
+					} else {
+						return dat;
 					}
 					accu.fs = FillState.up2;
 					if (++dcount >= 4) return dat;
 				case FillState.up2:
-					if (accu.Pts[accu.pnum].up2 == undefined) {
+					if (accu.Pts[accu.pnum] && accu.Pts[accu.pnum].up2) {
+						dat.append(accu.Pts[accu.pnum].up2);
+					} else {
 						let dt = new Array(64);
 						dt.fill(0);
 						dat.append(dt);
-					} else {
-						dat.append(accu.Pts[accu.pnum].up2);
 					}
 					accu.fs = FillState.upc;
 					if (++dcount >= 4) return dat;
 				case FillState.upc:
-					if (accu.Pts[accu.pnum].upc == undefined) {
+					if (accu.Pts[accu.pnum] && accu.Pts[accu.pnum].upc) {
+						dat.append(accu.Pts[accu.pnum].upc);
+					} else {
 						let dt = new Array(64);
 						dt.fill(0);
 						dat.append(dt);
-					} else {
-						dat.append(accu.Pts[accu.pnum].upc);
 					}
 					accu.fs = FillState.lp1;
 					if (++dcount >= 4) return dat;
 				case FillState.lp1:
-					if (accu.Pts[accu.pnum].lp1 == undefined) {
+					if (accu.Pts[accu.pnum] && accu.Pts[accu.pnum].lp1) {
+						dat.append(accu.Pts[accu.pnum].lp1);
+					} else {
 						let dt = new Array(64);
 						dt.fill(0);
 						dat.append(dt);
-					} else {
-						dat.append(accu.Pts[accu.pnum].lp1);
 					}
 					accu.fs = FillState.lp2;
 					if (++dcount >= 4) return dat;
 				case FillState.lp2:
-					if (accu.Pts[accu.pnum].lp2 == undefined) {
+					if (accu.Pts[accu.pnum] && accu.Pts[accu.pnum].lp2) {
+						dat.append(accu.Pts[accu.pnum].lp2);
+					} else {
 						let dt = new Array(64);
 						dt.fill(0);
 						dat.append(dt);
-					} else {
-						dat.append(accu.Pts[accu.pnum].lp2);
 					}
 					accu.fs = FillState.lpc;
 					if (++dcount >= 4) return dat;
 				case FillState.lpc:
-					if (accu.Pts[accu.pnum].lpc == undefined) {
+					if (accu.Pts[accu.pnum] && accu.Pts[accu.pnum].lpc) {
+						dat.append(accu.Pts[accu.pnum].lpc);
+					} else {
 						let dt = new Array(64);
 						dt.fill(0);
 						dat.append(dt);
-					} else {
-						dat.append(accu.Pts[accu.pnum].lpc);
 					}
 					accu.fs = FillState.pd;
 					if (++dcount >= 4) return dat;
 				case FillState.pd:
-					if (accu.Pts[accu.pnum].pd == undefined) {
+					if (accu.Pts[accu.pnum] && accu.Pts[accu.pnum].pd) {
+						if (accu.pnum ==63)
+							dat.append(accu.Pts[accu.pnum].pd.slice(0,63));
+						else
+							dat.append(accu.Pts[accu.pnum].pd);
+					} else {
 						let dt;
 						if (accu.pnum ==63)
 							dt = new Array(63);
@@ -365,11 +366,6 @@ module.exports = class RolandPatch {
 							dt = new Array(64);
 						dt.fill(0);
 						dat.append(dt);
-					} else {
-						if (accu.pnum ==63)
-							dat.append(accu.Pts[accu.pnum].pd.slice(0,63));
-						else
-							dat.append(accu.Pts[accu.pnum].pd);
 					}
 					accu.fs = FillState.up1;
 					if (++accu.pnum >= 64) return dat;;
@@ -457,7 +453,19 @@ module.exports = class RolandPatch {
 		while (Accu.pnum <64) {
 			dat = dat.concat(RolandPatch._makePackets(Accu,0).blob);
 		}
-		console.log(`_makePackets ended with pnum ${Accu.pnum}, fs ${Accu.fs}`);
+		//console.log(`_makePackets ended with pnum ${Accu.pnum}, fs ${Accu.fs}`);
+		return Buffer.from(Uint8Array.from(dat));
+	}
+	
+	static writePatchToBlob(datarr) {
+		var dat = [];
+		var Accu = {Pts: [datarr, undefined],
+			fs: FillState.up1,
+			pnum: 0};
+		while (Accu.pnum <1) {
+			dat = dat.concat(RolandPatch._makePackets(Accu,0).blob);
+		}
+		//console.log(`_makePackets ended with pnum ${Accu.pnum}, fs ${Accu.fs}`);
 		return Buffer.from(Uint8Array.from(dat));
 	}
 	

@@ -2,15 +2,14 @@ const finalhandler = require('finalhandler');
 const http         = require('http');
 const { spawn } = require('child_process');
 const fs = require('fs');
-
+const os = require('os');
+const path = require('path');
 global.navigator = require('web-midi-api');
 if (!global.performance) global.performance = { now: require('performance-now') };
 var WebMidi = new require('webmidi');
 
 var Roland = require('./roland.js');
 var Patch = require('./rolandPatch.js');
-
-var RolandSynth = new Roland();
 
 const hostname = 'localhost';
 const port = 10532;
@@ -26,6 +25,18 @@ var server = http.createServer(function(req, res) {
 });
 
 var Triggered = false;
+var MySettings;
+
+function readSettings(model) {
+	try {
+		var fn =  os.homedir() + path.sep + ".synths.json";
+		AllSettings = JSON.parse(fs.readFileSync(fn));
+		MySettings = AllSettings.find((it) =>{return it.name == model;});
+	} catch (e) {
+		return "Cannot read settings, " + e;
+	}
+	return "Ok";
+}
 
 function handlePost(url, func) {
 	app.post(url, (req, res) => {
@@ -75,8 +86,10 @@ app.get('/forcequit', function(req, res) {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
   res.end('ok');
   console.log('forcing quit');
-  Webmidi.disable();
+  WebMidi.removeListener();
+  WebMidi.disable();
   server.close();
+  process.exit(0);		// TODO: make sure everything is written yet
 });
 
 // TODO: quit also when closing the browser
@@ -86,12 +99,13 @@ app.get('/quit', function (req, res) {
   //res.write('<html><head><script>function max_zu() {window.close();};</script></head>');
   res.end('<body>Bye!</body></html>');
   server.close();
-  Webmidi.disable();
-  console.log('server closed and webmidi ended');
+  WebMidi.disable();
+  console.log('server closed and WebMidi disabled');
+  process.exit(0);
 });
 
 app.get('/swap',function (postdat,res) {
-	RolandSynth.swap();
+	Roland.getSingle().swap();
 	res.setHeader('Content-Type', 'text/json; charset=utf-8');
 	res.end('"Ok"');
 });
@@ -99,41 +113,55 @@ app.get('/swap',function (postdat,res) {
 
 handlePost('/move',function (req,res) {
 	res.setHeader('Content-Type', 'text/json; charset=utf-8');
-res.end(JSON.stringify({result:RolandSynth.move(req.from, req.to)}));
+	res.end(JSON.stringify({result:Roland.getSingle().move(req.from, req.to)}));
 });
 
 handlePost('/check', (postdat, res) => {
 	var Msg;
 	var PatchName;
-	//var roland = new Roland(WebMidi.getInputByName(postdat.MidiIn), WebMidi.getOutputByName(postdat.MidiOut), postdat.MidiChan-1);
 	mIn = WebMidi.getInputByName(postdat.MidiIn);
 	mOut = WebMidi.getOutputByName(postdat.MidiOut);
 	mChan = postdat.MidiChan-1;
 	try {
-		RolandSynth.getCurrentPatchName(mIn, mOut, mChan).then((sysx) => {
-				let PatchName =  Patch.toStr(sysx.raw.slice(3));
-				let Msg = 'Found D50, current patch: ' + PatchName;
+		Roland.getInstance(mIn, mOut, mChan).getCurrentPatch().then((patch) => {
+				let Msg = patch.patchname;
 				res.setHeader('Content-Type', 'text/json; charset=utf-8');
 				res.setHeader("cache-control", "no-store");
-				res.end('{"result":"' + Msg + '"}');
+				res.end('{"patch":"' + Msg + '"}');
 			}).catch((value) =>{
 				let Msg = 'Could not find D50, reason: ' + value;
 				res.setHeader('Content-Type', 'text/json; charset=utf-8');
 				res.setHeader("cache-control", "no-store");
-				res.end('{"result":"' + Msg + '"}');
+				res.end('{"error":"' + Msg + '"}');
 			});
 	} catch(e) {
+		res.setHeader('Content-Type', 'text/json; charset=utf-8');
+		res.setHeader("cache-control", "no-store");
+		res.end('{"error":"' + e + '"}');
+	}	
+});
+
+//TODO: write to synths.json
+handlePost('/selIfc', (postdat, res) => {
+	let mIn = WebMidi.getInputByName(postdat.MidiIn);
+	let mOut = WebMidi.getOutputByName(postdat.MidiOut);
+	let mChan = postdat.MidiChan-1;
+	try {
+		Roland.getInstance(mIn, mOut, mChan);
+		res.setHeader('Content-Type', 'text/json; charset=utf-8');
+		res.setHeader("cache-control", "no-store");
+		res.end('{"result":"' + Msg + '"}');
+	} catch(e) {	
 		res.setHeader('Content-Type', 'text/json; charset=utf-8');
 		res.setHeader("cache-control", "no-store");
 		res.end('{"result":"' + e + '"}');
 	}	
 });
-
+		
 handlePost('/read', (postdat, res) => {
-	//var patch = new Patch(WebMidi.getInputByName(postdat.MidiIn), WebMidi.getOutputByName(postdat.MidiOut), postdat.MidiChan-1);
-	mIn = WebMidi.getInputByName(postdat.MidiIn);
-	mOut = WebMidi.getOutputByName(postdat.MidiOut);
-	mChan = postdat.MidiChan-1;
+	let mIn = WebMidi.getInputByName(postdat.MidiIn);
+	let mOut = WebMidi.getOutputByName(postdat.MidiOut);
+	let mChan = postdat.MidiChan-1;
 	var patch = new Patch(mIn, mOut, mChan);
 	try {	
 		patch.readFromSynth(parseInt(postdat.bank-1), parseInt(postdat.pnum-1)).then((_ign) =>{
@@ -156,11 +184,11 @@ handlePost('/read', (postdat, res) => {
 });
 
 handlePost('/readMemory', (postdat, res) => {
-	mIn = WebMidi.getInputByName(postdat.MidiIn);
-	mOut = WebMidi.getOutputByName(postdat.MidiOut);
-	mChan = postdat.MidiChan-1;
+	let mIn = WebMidi.getInputByName(postdat.MidiIn);
+	let mOut = WebMidi.getOutputByName(postdat.MidiOut);
+	let mChan = postdat.MidiChan-1;
 	try {
-		RolandSynth.readMemoryFromSynth(mIn, mOut, mChan).then((arr) => {
+		Roland.getInstance(mIn, mOut, mChan).readMemoryFromSynth().then((arr) => {
 			var result = {result:"Successfully read memory", names:arr};
 			res.setHeader('Content-Type', 'text/json; charset=utf-8');
 			res.setHeader("cache-control", "no-store");
@@ -179,11 +207,11 @@ handlePost('/readMemory', (postdat, res) => {
 });
 
 handlePost('/writeMemory', (postdat, res) => {
-	mIn = WebMidi.getInputByName(postdat.MidiIn);
-	mOut = WebMidi.getOutputByName(postdat.MidiOut);
-	mChan = postdat.MidiChan-1;
+	let mIn = WebMidi.getInputByName(postdat.MidiIn);
+	let mOut = WebMidi.getOutputByName(postdat.MidiOut);
+	let mChan = postdat.MidiChan-1;
 	try {
-		RolandSynth.writeMemoryToSynth(mIn, mOut, mChan).then((arr) => {
+		Roland.getInstance(mIn, mOut, mChan).writeMemoryToSynth().then((arr) => {
 			var result = {result:"Memory successfully written"};
 			res.setHeader('Content-Type', 'text/json; charset=utf-8');
 			res.setHeader("cache-control", "no-store");
@@ -203,7 +231,7 @@ handlePost('/writeMemory', (postdat, res) => {
 
 handlePost('/readFile', (postdat, res) => {
 	try {
-		RolandSynth.readMemoryFromDataURL(postdat).then((answ) => {
+		Roland.getSingle().readMemoryFromDataURL(postdat).then((answ) => {
 			var result = {result:"Successfully read file", names:answ};
 			res.setHeader('Content-Type', 'text/json; charset=utf-8');
 			res.setHeader("cache-control", "no-store");
@@ -222,7 +250,7 @@ handlePost('/readFile', (postdat, res) => {
 });
 
 app.get('/writeFile.syx', (req, res) => {
-	RolandSynth.writeMemoryToData().then((answ) => {
+	Roland.getSingle().writeMemoryToData().then((answ) => {
 		//var result = {result:"Successfully wrote file", names:answ};
 		res.setHeader('Content-Type', 'audio/x-midi');
 		res.setHeader("cache-control", "no-store");
@@ -235,23 +263,48 @@ app.get('/writeFile.syx', (req, res) => {
 	});
 });
 
+app.get('/writePatch.syx', (req, res) => {
+	Roland.getSingle().writePatchToData().then((answ) => {
+		res.setHeader('Content-Type', 'audio/x-midi');
+		res.setHeader("cache-control", "no-store");
+		res.end(answ);
+	}).catch((err) =>{
+		let Msg = 'Could not read file, ' + err;
+		res.setHeader('Content-Type', 'text/json; charset=utf-8');
+		res.setHeader("cache-control", "no-store");
+		res.end('{"result":"' + Msg + '"}');
+	});
+});
 
 app.get('/inputs', (req, res) =>{
-  var list = [];
+  var lst = [];
+  var answ;
   res.setHeader('Content-Type', 'text/json; charset=utf-8');
   WebMidi.inputs.forEach((inp) => {
-	  list.push(inp.name);
+	  lst.push(inp.name);
   });
-  res.end(JSON.stringify(list));
+  var mod = req.query.mdl;
+  var ret = readSettings(mod);
+  if (ret != "Ok") 
+	answ = {list: lst, error: ret};
+  else
+	answ = {list: lst, settings: MySettings};
+  res.end(JSON.stringify(answ));
  });
  
 app.get('/outputs', (req, res) =>{
-  var list = [];
+  var lst = [];
   res.setHeader('Content-Type', 'text/json; charset=utf-8');
   WebMidi.outputs.forEach((ot) => {
-	  list.push(ot.name);
+	  lst.push(ot.name);
   });
-  res.end(JSON.stringify(list));
+  var mod = req.query.mdl;
+  var ret = readSettings(mod);
+  if (ret != "Ok") 
+	answ = {list:lst, error: ret};
+  else
+	answ = {list: lst, settings: MySettings};
+  res.end(JSON.stringify(answ));
  });
  
 app.get ('/*', function(req,res) {
@@ -272,15 +325,6 @@ WebMidi.enable((err) =>{
 	}
 }, true);
 
-/*
-WebMidi.requestMidiAccess(true).then(function(access) {
-	MidiAccess = access;
-	console.log("requestMidiAccess successful");
-})
-.catch(function(code) {
-	console.log('requestMidiAccess failed with code $code');
-});
-*/
 
 const browser = spawn('cmd.exe', ['"/c start /max http://' + hostname + ':' + port + '/index.html"']);
 server.listen(port, hostname);
