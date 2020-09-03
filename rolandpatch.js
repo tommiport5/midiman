@@ -4,7 +4,10 @@
  * the 3byte notation is MSB, middle septet, LSB
  */
  
-Sysex = require('./sysex.js');
+var Combi = require('./sysex');
+var Sysex = Combi.rs;
+var ChecksumType = Combi.ct;
+// import {Sysex, ChecksumType} from './sysex';
 
 const _rochar = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890-";
 const _WSD = 0x40;

@@ -4,8 +4,9 @@
  * It is a Multiton. Each instance can be identified by the triple [MidiIn, MidiOut, MidiChannel].
  * TODO: Identify the "current instance" somehow.
  */
- 
-var Sysex = require('./sysex');
+
+var Combi = require('./sysex');
+var Sysex = Combi.rs;
 var Patch = require('./rolandpatch');
 const Base64 = require('Base64');
 
