@@ -1,46 +1,27 @@
 /**
- * Class RolandPatch
- * manages patches on a Roland Synthesizer
- * the 3byte notation is MSB, middle septet, LSB
+ * Class AccessPatch
+ * manages patches on an access virus
+ * A single patch consists of 4 buffers A to D
  */
  
 var Combi = require('./sysex');
-var Sysex = Combi.rs;
-var ChecksumType = Combi.ct;
+var Sysex = Combi.as;
 
-const _rochar = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890-";
-const _WSD = 0x40;
-const _RQD = 0x41;
-const _DAT = 0x42;
-const _ACK = 0x43;
-const _EOD = 0x45;
-const _RJC = 0x4f;
-const _RQ1 = 0x11;
+const _SIR = 0x30;
+const _MUR = 0x31;
+const _SBR = 0x32;
+const _MBR = 0x33;
+const _SID = 0x10;
+const _MUD = 0x11;
 
 const FillState = Object.freeze ({
-	up1: 1,
-	up2: 2,
-	upc: 3,
-	lp1: 4,
-	lp2: 5,
-	lpc: 6,
-	pd: 7
+	__A: 1,
+	__B: 2,
+	__C: 3,
+	__D: 4,
 });
 
-function delay(ms) {
-	return new Promise((resolve) => {
-		setTimeout(resolve(), ms);
-	});
-}
-
-function address2PatchAndState(adr) {
-	let point = (adr - 32768) / 448;
-	let patch = Math.trunc(point);
-	let state = Math.round((point-patch)*7) + 1;
-	return [patch, state];
-}
-
-module.exports = class RolandPatch {
+module.exports = class AccessPatch {
 	constructor(MIn, MOut, MChan) {
 		this.mIn = MIn;
 		this.mOut = MOut;
@@ -52,53 +33,15 @@ module.exports = class RolandPatch {
 		return this.complete;
 	}
 	
-	static toStr(arr) {
-		var res = "";
-		arr.forEach((c) => {
-			if (c < 64) {
-				res += _rochar[c];
-			}
-		});
-		return res;
-	}
-	
+
 	get patchname() {
 		var res;
-		if (this.pd == undefined) {
+		if (this.__B == undefined) {
 			res = "<undefined>";
 		} else {
-			res = RolandPatch.toStr(this.pd.slice(0,18));
+			res = this.__B.slice(112,122);
 			if (!this._complete) res += " <incomplete>";
 		}
-		return res;
-	}
-	
-	get tonenames() {
-		if (this.lpc == undefined || this.upc == undefined) {
-			console.log((this.lpc == undefined).toString() + ", " + (this.upc == undefined).toString());
-			throw ReferenceError;
-		}
-		return [RolandPatch.toStr(this.upc.slice(0,10)), RolandPatch.toStr(this.lpc.slice(0,10))];
-	}
-
-	static patch2mem(bank, pn) {
-		return RolandPatch.threebyte2num([2,0,0]) + (bank*8+pn)*448;
-	}
-	
-	static fs2mem(pnum, fs) {
-		return RolandPatch.threebyte2num([2,0,0]) + pnum*448 + (fs-1)*64;
-	}
-	
-	static threebyte2num(arr) {
-		return ((arr[0] & 0x7f) << 14) | ((arr[1] & 0x7f) << 7) | (arr[2] & 0x7f);
-	}		
-			
-	static num2threebyte(num) {
-		var res = [0,0,0];
-		var n = Math.round(num);
-		res[2] = n & 0x7f;
-		res[1] = (n >> 7) & 0x7f;
-		res[0] = (n >> 14) & 0x7f;
 		return res;
 	}
 	
@@ -107,52 +50,27 @@ module.exports = class RolandPatch {
 	 * reads one patch into this object
 	 */
 	readFromSynth() {
-		var This = this;
-		return new Promise((resolve,reject) => {
-			try {
-				var rd = new Sysex(This.mChan, _RQ1);
-				var ds = new Sysex();
-				var Ret = ds.listen(This.mIn);
-				rd.append([0,0,0]);
-				rd.append(RolandPatch.num2threebyte(256));
-				console.log("sending >>" + rd.sendData + "<<");
-				rd.send(This.mOut);
-				Ret.then((sx) => {
-					//if (sx.command == _RJC) throw "rejected";
-					let add = sx.raw.slice(0,3);
-					let sxd = sx.raw.slice(3);
-					console.log("received " + sxd.length + " byte for address " + add);
-					This.up1 = sxd.slice(0,64);
-					This.up2 = sxd.slice(64,128);
-					This.upc = sxd.slice(128,192);
-					This.lp1 = sxd.slice(192);
-					Ret = ds.listen(This.mIn);
-					rd = new Sysex(This.mChan, _RQ1);
-					rd.append(RolandPatch.num2threebyte(256));
-					rd.append(RolandPatch.num2threebyte(192));
-					rd.send(This.mOut);
-					return Ret;
-				}).then((sx) =>{
-					//if (sx.command == _RJC) throw "rejected";
-					console.log("received command: " + sx.command);
-					let add = sx.raw.slice(0,3);
-					let sxd = sx.raw.slice(3);
-					console.log("received " + sxd.length + " byte for address " + add);
-					This.lp2 = sxd.slice(0,64);
-					This.lpc = sxd.slice(64,128);
-					This.pd = sxd.slice(128);
-					this._complete = true;
-					resolve("ok");
-					return Ret;
-				}).catch((tmo) => {
-					console.log('failure in promise chain: ' + tmo);
-					reject(tmo);
-				});
-			} catch(e) {
-				console.log('exception occured in read from synth: ' + e);
-				reject(e);
-			}
-		});
+		try {
+			var rd = new Sysex(this.mChan, _SIR);
+			var ds = new Sysex();
+			var Ret = ds.listen(this.mIn);
+			rd.append([0,0x40]);
+			console.log("sending >>" + rd.sendData + "<<");
+			rd.send(this.mOut);
+			Ret.then((sx) => {
+				//if (sx.command == _RJC) throw "rejected";
+				let add = sx.raw.slice(0,2);
+				let sxd = sx.raw.slice(2);
+				console.log("received " + sxd.length + " byte for bank " + add[0]);
+				this.__A = sxd.slice(0,128);
+				this.__B = sxd.slice(128,256);
+				return Ret;
+			});
+			return Ret;
+		} catch(e) {
+			console.log('exception occured in read from synth: ' + e);
+			return Promise.reject(e);
+		}
 	}
 	
 	static waitForACK(mIn) {
@@ -189,7 +107,11 @@ module.exports = class RolandPatch {
 	}
 	
 	static anounceAllPatches(mOut, mChan) {
-		var wsd = new Sysex(mChan, _WSD);
+		var wsd = new Sysex();
+		wsd.brand = 0x41;
+		wsd.channel = mChan;
+		wsd.model = 0x14;
+		wsd.command = _WSD;
 		wsd.raw = [2,0,0];
 		wsd.append(RolandPatch.num2threebyte(64*448-1));
 		wsd.send(mOut);
@@ -275,7 +197,11 @@ module.exports = class RolandPatch {
 	 */
 	static _makePackets(accu, mChan) {
 		var dcount = 0;
-		var dat = new Sysex(mChan, _DAT);
+		var dat = new Sysex();
+		dat.brand = 0x41;
+		dat.channel = mChan;
+		dat.model = 0x14;
+		dat.command = _DAT;
 		dat.raw = RolandPatch.num2threebyte(RolandPatch.fs2mem(accu.pnum, accu.fs));
 		for (;;) {
 			switch (accu.fs) {
@@ -376,7 +302,11 @@ module.exports = class RolandPatch {
 		try {
 			var resp;
 			var ds = new Sysex();
-			var ack = new Sysex(mChan, _ACK);
+			var ack = new Sysex();
+			ack.brand = 0x41;
+			ack.channel = mChan;
+			ack.model = 0x14;
+			ack.command = _ACK;
 			var Ret = ds.listen(mIn);
 			ack.send(mOut);
 			do {
@@ -474,7 +404,11 @@ module.exports = class RolandPatch {
 			}
 		}
 		Ret = ds.listen(mIn);
-		var eod = new Sysex(mChan, _EOD);
+		var eod = new Sysex();
+		eod.brand = 0x41;
+		eod.channel = mChan;
+		eod.model = 0x14;
+		eod.command = _EOD;
 		eod.send(mOut);
 		return Ret;
 	}

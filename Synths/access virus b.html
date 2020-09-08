@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8"/>
+<meta content="no-cache" http-equiv="cache-control"/>
+<meta content="no-cache" http-equiv="pragma"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="/global.css">
+<script>
+const Model = "access virus b";
+</script>
+<script src="/ui.js"></script> 
+</head>
+<body>
+<div class="container">
+<p id="Result"></p>
+<div id="synth" class="framed">
+<h1>Synth</h1>
+<div>
+<span>
+<label for="MidiIn">
+Midi Inputs
+</label>
+<select id="MidiIn">
+</select>
+</span>
+<span>
+<label for="MidiOut">
+Midi Outputs
+</label>
+<select id="MidiOut">
+</select>
+</span>
+<span>
+<label for="MidiChan">
+Midi Channel
+</label>
+<select id="MidiChan">
+<option>1</option>
+<option>2</option>
+<option>3</option>
+<option>4</option>
+<option>5</option>
+<option>6</option>
+<option>7</option>
+<option>8</option>
+<option>9</option>
+<option>10</option>
+<option>11</option>
+<option>12</option>
+<option>13</option>
+<option>14</option>
+<option>15</option>
+<option>16</option>
+</select>
+</span>
+<button type="button" class="nav_item" id="selInterface">Select Interface</button>
+<button type="button" class="nav_item" id="readMem">Read Memory</button>
+<button type="button" class="nav_item" id="writeMem">Write Memory</button>
+</div>
+<table ondrop="drop(event)" ondragover="allowDrop(event)">
+<th class="frameless"></th><th colspan="8">Patch</th>
+<tr><td rowspan=8>Bank</td>
+<td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
+<tr><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
+<tr><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
+<tr><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
+<tr><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
+<tr><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
+<tr><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
+<tr><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
+</table>
+</div>
+<span class="bni">
+<button type="button" id="swapbutton">Swap</button><label for="c">Clipboard</label><p class="clipboard" id="c" ondragstart="dragStart(event)" draggable=true ondrop="drop(event)" ondragover="allowDrop(event)"></p>
+<button type="button" class="nav_item" id="checkbutton">Read Current Patch</button>
+<a href="http://localhost:10532/writePatch.syx" class="button" download>Write Patch To File</a>
+</span>
+<div class="framed" id="file">
+<h1>File</h1>
+<span>
+<form id="readForm">
+<label for="fname">File to Read (*.syx)</label>
+<input id="fname" name="fname" type="file">
+<button type="button" id="readFile">Read File</button>
+<a href="http://localhost:10532/writeFile.syx" class="button" download>Write File</a>
+</form>
+</span>
+<table ondrop="drop(event)" ondragover="allowDrop(event)">
+<th class="frameless"></th><th colspan="8">Patch</th>
+<tr><td rowspan=8>Bank</td>
+<td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
+<tr><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
+<tr><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
+<tr><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
+<tr><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
+<tr><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
+<tr><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
+<tr><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
+</table>
+</div>
+</div>
+</body>
+</html>
