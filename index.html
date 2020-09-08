@@ -11,8 +11,8 @@
 const port = 10532;
 var Subwindows = [];
 function openSub(name) {
-var neighbour = window.open(name);
-Subwindows.push(neighbour);
+	var neighbour = window.open(name);
+	Subwindows.push(neighbour);
 }
 function quit() {
 	Subwindows.forEach((win) => {
@@ -26,10 +26,10 @@ function quit() {
 <body>
 <div class="container">
 <div>
-<a onclick="openSub('http://localhost:10532/roland.html')"><img src="http://localhost:10532/images/d50.png" alt="Roland D50"></a>
+<a onclick="openSub('http://localhost:10532/SynthPage.html?mdl=Roland+D50')"><img src="http://localhost:10532/images/d50.png" alt="Roland D50"></a>
 </div>
 <div>
-<a onclick="openSub('http://localhost:10532/access.html')"><img src="http://localhost:10532/images/virus.jpg" alt="access virus b"></a>
+<a onclick="openSub('http://localhost:10532/SynthPage.html?mdl=access+virus+b')"><img src="http://localhost:10532/images/virus.jpg" alt="access virus b"></a>
 </div>
 <div>
 <button type="button" onclick="quit()">quit</button>

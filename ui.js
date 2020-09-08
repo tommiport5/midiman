@@ -75,7 +75,8 @@ function quit() {
 function selectInterface() {
 	var Settings = {MidiIn:document.getElementById("MidiIn").value,
 					MidiOut:document.getElementById("MidiOut").value,
-					MidiChan:document.getElementById("MidiChan").value};
+					MidiChan:document.getElementById("MidiChan").value,
+					Mdl:Model};
 	getJsonParam('http://localhost:' + port +'/selIfc', JSON.stringify(Settings), (data) => {
 		if (data.error)
 			document.getElementById("Result").innerText = data.error;
@@ -85,9 +86,7 @@ function selectInterface() {
 }
 
 function readCurrentPatch() {
-	var Settings = {MidiIn:document.getElementById("MidiIn").value,
-					MidiOut:document.getElementById("MidiOut").value,
-					MidiChan:document.getElementById("MidiChan").value};
+	let Settings = {Mdl: Model};
 	getJsonParam('http://localhost:' + port +'/check', JSON.stringify(Settings), (data) => {
 		if (data.error)
 			document.getElementById("Result").innerText = data.error;
@@ -124,10 +123,7 @@ function displayNames(tab, src) {
 	
 	
 function readMemory() {
-	var Settings = {MidiIn:document.getElementById("MidiIn").value,
-					MidiOut:document.getElementById("MidiOut").value,
-					MidiChan:document.getElementById("MidiChan").value
-					};
+	let Settings = {Mdl: Model};
 	document.getElementById("Result").innerText = 'On the D50 press "Data Transfer/B.Dump/Enter" and wait while the D50 displays "Sending"';
 	getJsonParam('http://localhost:' + port +'/readMemory', JSON.stringify(Settings), (data) => {
 		document.getElementById("Result").innerText = data.result;
@@ -139,10 +135,7 @@ function readMemory() {
 }
 
 function writeMemory() {
-	var Settings = {MidiIn:document.getElementById("MidiIn").value,
-					MidiOut:document.getElementById("MidiOut").value,
-					MidiChan:document.getElementById("MidiChan").value
-					};
+	let Settings = {Mdl: Model};
 	document.getElementById("Result").innerText = 'On the D50 press "Data Transfer/B.Load/Enter" and wait while the D50 displays "Loading"';
 	getJsonParam('http://localhost:' + port +'/writeMemory', JSON.stringify(Settings), (data) => {
 		document.getElementById("Result").innerText = data.result;
@@ -153,7 +146,8 @@ function readFile() {
 	var fl = new FormData(document.getElementById("readForm")).get("fname");
 	var rd = new FileReader();
 	rd.onloadend = function() {
-		getJsonParam('http://localhost:' + port + '/readFile', JSON.stringify(rd.result), (data) => {
+		let Settings = {Mdl: Model, Cont:rd.result};
+		getJsonParam('http://localhost:' + port + '/readFile', JSON.stringify(Settings), (data) => {
 			document.getElementById("Result").innerText = data.result;
 			if (data.names) {
 				displayNames("fpname", data.names);
@@ -168,7 +162,7 @@ function swap() {
 	let tmp = SynthPatches;
 	SynthPatches = FilePatches;
 	FilePatches = tmp;
-	getJsonData('/swap', function() {
+	getJsonData('/swap?Mdl=' + Model, function() {
 		displayNames("spname", SynthPatches);	
 		displayNames("fpname", FilePatches);
 	});
@@ -208,9 +202,10 @@ function drop(ev) {
 	let dest_txt = ev.target.text;
 	if (dest_id[0] == 's' ) SynthPatches[dest_id.substr(1)] = src_txt;
 	if (dest_id[0] == 'f' ) FilePatches[dest_id.substr(1)] = src_txt;
-	var Settings = {
+	let Settings = {
 		from: src_id,
-		to: dest_id
+		to: dest_id,
+		Mdl: Model
 	};
 	getJsonParam('http://localhost:' + port +'/move', JSON.stringify(Settings), (answ) => {
 		if (answ.result == 'Ok') {
@@ -275,6 +270,7 @@ function displayForm() {
 	document.getElementById("writeMem").addEventListener('click',writeMemory);
 	//document.getElementById("quitbutton").addEventListener('click',quit);
 	document.getElementById("readFile").addEventListener('click',readFile);
+	document.getElementById("writeFile").href = "http://localhost:10532/writeFile.syx?Mdl=" + Model;
 	document.getElementById("swapbutton").addEventListener('click',swap);
 	prepareDnd();
 	//window.addEventListener('beforeunload',forcequit);

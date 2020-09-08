@@ -1,18 +1,16 @@
 /**
- * Class Roland
- * manages communication with a Roland Synthesizer via Sysex Messages.
+ * Class Access
+ * manages communication with a Access Synthesizer via Sysex Messages.
  * It is a Multiton. Each instance can be identified by the triple [MidiIn, MidiOut, MidiChannel].
- * But the devices are managed by the top level application mm.js, so theInstances are not used at all.
+ * TODO: Identify the "current instance" somehow.
  */
-
-var Combi = require('./sysex');
-var Sysex = Combi.rs;
-var Patch = require('./rolandpatch');
+ 
+var Patch = require('./accesspatch');
 const Base64 = require('Base64');
 
 var theInstances = [];
 
-module.exports = class Roland {
+module.exports = class Access {
 	constructor(MIn, MOut, MChan) {
 		this.mIn = MIn;
 		this.mOut = MOut;
@@ -33,8 +31,8 @@ module.exports = class Roland {
 				nins = ins;
 		});
 		if (nins) return nins;
-		nins = new Roland(MIn, MOut, MChan);
-		console.log(`new Roland instance for ${MIn.id}, ${MOut.id}, ${MChan}`);
+		nins = new Access(MIn, MOut, MChan);
+		console.log(`new Access instance for ${MIn.id}, ${MOut.id}, ${MChan}`);
 		theInstances.unshift(nins);	// always return the last with getSingle()
 		return nins;
 	}
@@ -50,23 +48,6 @@ module.exports = class Roland {
 	get clipboard() {
 		return this._clipboard;
 	}
-	
-	/*
-	getCurrentPatchName() {
-		var RequestData = new Sysex();
-		this.DataSet = new Sysex();
-
-		var Ret = this.DataSet.listen(this.mIn);
-		RequestData.brand = 0x41;
-		RequestData.channel = this.mChan;
-		RequestData.model = 0x14;
-		RequestData.command = 0x11;
-		RequestData.append(Patch.num2threebyte(384));		
-		RequestData.append(Patch.num2threebyte(18));
-		RequestData.send(mOut);
-		return Ret;
-	}
-	*/
 	
 	getCurrentPatch() {
 		var curpat = new Patch (this.mIn, this.mOut, this.mChan);
