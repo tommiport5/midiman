@@ -47,6 +47,10 @@ th.frameless {
 	margin: 3px;
 }
 
+.framed {
+	display: grid;
+}
+
 /* buttons and input */
 .bni {
 	display:grid;
@@ -62,8 +66,7 @@ label {
 	
 .nav_bar{
 	display: grid; 
-	grid-auto-flow: 
-	column;
+	grid-auto-flow: column;
 }
 .nav_item {
 	margin: 1em;
@@ -85,14 +88,6 @@ a.clipname {text-decoration: none; }
 	gap: 1em;
 	justify-content: space-between;
 }
-/*
-.container {
-       display: -webkit-flex;
-       display: flex;
-       -webkit-flex-flow: row wrap;
-       flex-flow: row wrap;
-     }
-*/   
 
 @media (max-width: 776px) {
 	.c1, .c11, .c12, .ctab {
@@ -153,10 +148,22 @@ input {
 	border-style:solid;
 }
 
-button {
+button, .slb {
 	border-style:outset;
 	box-shadow: 0 0 5px inset grey;
 }
+
+.seltab {
+	display: grid;
+	border: none;
+	justify-self: center;
+}
+
+.slb {
+	justify-self: center;
+	min-width: 3em;
+}
+
 a.button, a.button:visited {
 	background-color: #ececec;
 	color: Black;

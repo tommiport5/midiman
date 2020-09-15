@@ -147,7 +147,7 @@ handlePost('/check', (postdat, res) => {
 				res.setHeader("cache-control", "no-store");
 				res.end('{"patch":"' + Msg + '"}');
 			}).catch((value) =>{
-				let Msg = 'Could not find D50, reason: ' + value;
+				let Msg = 'Could not find device, reason: ' + value;
 				res.setHeader('Content-Type', 'text/json; charset=utf-8');
 				res.setHeader("cache-control", "no-store");
 				res.end('{"error":"' + Msg + '"}');
@@ -204,7 +204,7 @@ handlePost('/read', (postdat, res) => {
 
 handlePost('/readMemory', (postdat, res) => {
 	try {
-		getInstance(postdat.Mdl).readMemoryFromSynth().then((arr) => {
+		getInstance(postdat.Mdl).readMemoryFromSynth(postdat).then((arr) => {
 			var result = {result:"Successfully read memory", names:arr};
 			res.setHeader('Content-Type', 'text/json; charset=utf-8');
 			res.setHeader("cache-control", "no-store");

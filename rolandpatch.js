@@ -27,12 +27,6 @@ const FillState = Object.freeze ({
 	pd: 7
 });
 
-function delay(ms) {
-	return new Promise((resolve) => {
-		setTimeout(resolve(), ms);
-	});
-}
-
 function address2PatchAndState(adr) {
 	let point = (adr - 32768) / 448;
 	let patch = Math.trunc(point);

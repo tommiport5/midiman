@@ -21,6 +21,14 @@ const FillState = Object.freeze ({
 	__D: 4,
 });
 
+function delay(ms) {
+	return new Promise((resolve) => {
+		setTimeout(() => {
+			resolve();
+		}, ms);
+	});
+}
+
 module.exports = class AccessPatch {
 	constructor(MIn, MOut, MChan) {
 		this.mIn = MIn;
@@ -30,16 +38,16 @@ module.exports = class AccessPatch {
 	}
 	
 	get complete() {
-		return this.complete;
+		return this._complete;
 	}
 	
 
 	get patchname() {
-		var res;
+		var res = "";
 		if (this.__B == undefined) {
 			res = "<undefined>";
 		} else {
-			res = this.__B.slice(112,122);
+			this.__B.slice(111,122).reduce((total, val) => {res += String.fromCharCode(val);});
 			if (!this._complete) res += " <incomplete>";
 		}
 		return res;
@@ -50,144 +58,34 @@ module.exports = class AccessPatch {
 	 * reads one patch into this object
 	 */
 	readFromSynth() {
-		try {
-			var rd = new Sysex(this.mChan, _SIR);
-			var ds = new Sysex();
-			var Ret = ds.listen(this.mIn);
-			rd.append([0,0x40]);
-			console.log("sending >>" + rd.sendData + "<<");
-			rd.send(this.mOut);
-			Ret.then((sx) => {
-				//if (sx.command == _RJC) throw "rejected";
-				let add = sx.raw.slice(0,2);
-				let sxd = sx.raw.slice(2);
-				console.log("received " + sxd.length + " byte for bank " + add[0]);
-				this.__A = sxd.slice(0,128);
-				this.__B = sxd.slice(128,256);
-				return Ret;
-			});
-			return Ret;
-		} catch(e) {
-			console.log('exception occured in read from synth: ' + e);
-			return Promise.reject(e);
-		}
-	}
-	
-	static waitForACK(mIn) {
 		return new Promise((resolve,reject) => {
-			new Sysex().listen(mIn, 30000)
-			.then((sx) =>{
-				if (sx.command == _ACK) resolve(sx);
-			}).catch((err) => {
-				reject(err);
-			});
+			try {
+				var rd = new Sysex(this.mChan, _SIR);
+				var ds = new Sysex();
+				var Ret = ds.listen(this.mIn);
+				rd.append([0,0x40]);
+				console.log("sending >>" + rd.sendData + "<<");
+				rd.send(this.mOut);
+				Ret.then((sx) => {
+					let add = sx.raw.slice(0,2);
+					let sxd = sx.raw.slice(2);
+					console.log("received " + sxd.length + " byte for bank " + add[0]);
+					this.__A = sxd.slice(0,128);
+					this.__B = sxd.slice(128,256);
+					this._complete = true;
+					return resolve("ok");
+				}).catch ((e) =>{
+					console.log("readFromSynth: " + e);
+					return reject(e);
+				});
+			} catch(e) {
+				console.log('exception occured in read from synth: ' + e);
+				return reject(e);
+			}
 		});
 	}
 	
-	static waitForRQD(mIn) {
-		return new Promise((resolve,reject) => {
-			new Sysex().listen(mIn, 30000)
-			.then((sx) =>{
-				if (sx.command == _RQD) resolve(sx);
-			}).catch((err) => {
-				reject(err);
-			});
-		});
-	}
 
-	static waitForWSD(mIn) {
-		return new Promise((resolve,reject) => {
-			new Sysex().listen(mIn, 30000)
-			.then((sx) =>{
-				if (sx.command == _WSD) resolve(sx);
-			}).catch((err) => {
-				reject(err);
-			});
-		});
-	}
-	
-	static anounceAllPatches(mOut, mChan) {
-		var wsd = new Sysex();
-		wsd.brand = 0x41;
-		wsd.channel = mChan;
-		wsd.model = 0x14;
-		wsd.command = _WSD;
-		wsd.raw = [2,0,0];
-		wsd.append(RolandPatch.num2threebyte(64*448-1));
-		wsd.send(mOut);
-	}
-		
-
-	/*
-	 * fillResult
-	 * fills 64 Rolandpatches with the data from a midi sysex
-	 */
-	static _fillResult(rw, accu) {
-		let threeb = rw.slice(0,3);
-		let addr = RolandPatch.threebyte2num(threeb);
-		if (accu.pnum >= 64) {
-			// console.log(`Ignoring data for addr ${addr}`);
-			return;		// ignore reverb for now
-		}
-		let found = address2PatchAndState(RolandPatch.threebyte2num(threeb));
-		if ((found[0] != accu.pnum) || (found[1] != accu.fs)){
-			console.log(`resync to ${found[0]}, ${found[1]} instead of ${accu.pnum}, ${accu.fs}, addr ${threeb}`);
-			accu.pnum = found[0];
-			accu.fs = found[1];
-		}
-		let raw = rw.slice(3);
-		if (accu.overflow.length > 0) {
-			console.log(`Overflow ${accu.overflow.length} after patch ${accu.Result.length}, state ${accu.fs}`);
-			raw = accu.overflow.concat(raw);
-			accu.overflow = [];
-		}
-		for (;;) {
-			if (accu.pnum >= 64) {
-				if (accu.overflow.length > 0) console.log(`leftover ${accu.overflow.length} bytes`);
-				return;		// ignore reverb for now
-			}
-			if (raw.length == 0) {
-				return;
-			}
-			if (raw.length < 64 && accu.pnum < 63) {	// exception because of length bug
-				accu.overflow = raw;
-				return;
-			}
-			switch (accu.fs) {
-				case FillState.up1:
-					if (accu.Result[accu.pnum] == undefined) accu.Result[accu.pnum] = new RolandPatch();
-					accu.Result[accu.pnum].up1 = raw.splice(0,64);
-					accu.fs = FillState.up2;
-					break;
-				case FillState.up2:
-					accu.Result[accu.pnum].up2 = raw.splice(0,64);
-					accu.fs = FillState.upc;
-					break;
-				case FillState.upc:
-					accu.Result[accu.pnum].upc = raw.splice(0,64);
-					accu.fs = FillState.lp1;
-					break;
-				case FillState.lp1:
-					accu.Result[accu.pnum].lp1 = raw.splice(0,64);
-					accu.fs = FillState.lp2;
-					break;
-				case FillState.lp2:
-					accu.Result[accu.pnum].lp2 = raw.splice(0,64);
-					accu.fs = FillState.lpc;
-					break;
-				case FillState.lpc:
-					accu.Result[accu.pnum].lpc = raw.splice(0,64);
-					accu.fs = FillState.pd;
-					break;
-				case FillState.pd:
-					accu.Result[accu.pnum].pd = raw.splice(0,64);
-					accu.Result[accu.pnum]._complete = true;
-					accu.pnum++;
-					accu.fs = FillState.up1;
-					break;
-			}
-		}
-	}
 
 	/*
 	 * makePackets
@@ -287,47 +185,33 @@ module.exports = class AccessPatch {
 
 	/**
 	 * readMemory
-	 * reads the internal memory and returns an array of RolandPatch objects
-	 * (yet without reverb data)
-	 * The D50 must initiate the transfer with a WSD telegram, which is awaited in waitForWSD.
+	 * reads the internal memory and returns an array of AccessPatch objects
+	 * must not read all banks in one go, because the browser gets unpatient :-(
 	 */
-	static async readMemoryFromSynth(mIn, mOut, mChan) {
-		var Accu = {Result: new Array(64), 
-			fs: FillState.up1,
-			pnum: 0,
-			overflow: [], 
-			expected: 32768
-		};
-		
+	static async readMemoryBankFromSynth(mIn, mOut, mChan, bank) {
 		try {
 			var resp;
 			var ds = new Sysex();
-			var ack = new Sysex();
-			ack.brand = 0x41;
-			ack.channel = mChan;
-			ack.model = 0x14;
-			ack.command = _ACK;
-			var Ret = ds.listen(mIn);
-			ack.send(mOut);
-			do {
+			var Result = new Array(128);
+			Sysex.trace = true;
+			let sbr = new Sysex(mChan, _SBR);
+			sbr.append([bank+1]);
+			sbr.send(mOut);
+			for (let prog = 0; prog < 128; prog++) {
+				let Ret = ds.listen(mIn);
+				Result[prog] = new AccessPatch();
 				let sx = await Ret;
 				resp = sx.command;
-				//console.log(`response 0x${resp.toString(16)}`);
-				if (resp == _DAT) {
-					Ret = ds.listen(mIn);
-					// let rcv = sx.raw.length-3;
-					// if (rcv < 256) console.log(`received ${rcv} byte`); 
-					// fill a RolandPatch with the data
-					RolandPatch._fillResult(sx.raw, Accu);
-					ack.send(mOut);
-				} else if (resp != _EOD) {
-					console.log("protocol error, received 0x${resp.toString(16)} instead of 0x40 or 0x45 in readMemory");
-					throw "protocol error";
+				if (resp == _SID) {
+					let add = sx.raw.slice(0,2);
+					let sxd = sx.raw.slice(2);
+					Result[prog].__A = sxd.slice(0,128);
+					Result[prog].__B = sxd.slice(128);
+					Result[ prog]._complete = true;
 				}
-			} while(resp != _EOD);
-			ack.send(mOut);
-			// console.log(Accu.Result[63].patchname); hier noch ok.
-			return Accu.Result;
+			}
+			await delay(1000);
+			return Result;
 		} catch(e) {
 			console.log('exception occured in readMemory: ' + e);
 			throw e;

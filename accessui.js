@@ -108,30 +108,23 @@ function readPatchByNumber() {
 	});
 }
 */
-function displayNames(tab, src) {
-	var arr = document.getElementsByClassName(tab);
-	var i = 0;
-	if (src) {
-		src.forEach((dt) => {
-			arr[i++].innerText = dt;
-		});
-	} 
-	for (;i<arr.length;) {
-		arr[i++].innerText = "";
-	}
-}
 	
-	
-function readMemory() {
-	let Settings = {Mdl: Model};
-	document.getElementById("Result").innerText = 'On the D50 press "Data Transfer/B.Dump/Enter" and wait while the D50 displays "Sending"';
+function readMemoryBank(i) {
+	let Settings = {Mdl: Model, Bank: i};
+	document.getElementById("Result").innerText = `Receiving bank ${i+1}`;
 	getJsonParam('http://localhost:' + port +'/readMemory', JSON.stringify(Settings), (data) => {
 		document.getElementById("Result").innerText = data.result;
 		if (data.names) {
-			displayNames("spname", data.names);
-			SynthPatches = data.names;
+			SynthPatches.push(data.names);
 		}
+		if (++i < 8) readMemoryBank(i);
+		else displayNames("spname", SynthPatches, 0, 0);
+
 	});
+}	
+function readMemoryBanks() {
+	SynthPatches = [];
+	readMemoryBank(0);
 }
 
 function writeMemory() {
@@ -168,23 +161,6 @@ function swap() {
 	});
 }
 
-function threebyte2num(arr) {
-	return 0x80*(0x80*arr[0] + arr[1]) + arr[2];
-}
-
-function _to3Byte(num) {
-	var res = [0,0,0];
-	var n = Math.round(num);
-	res[2] = num % 0x80;
-	res[1] = Math.trunc(n/0x80 % 0x80);
-	res[0] = Math.trunc(n/(0x80*0x80) % 0x80);
-	return res;
-}
-
-function patch2Mem(bank, pn) {
-	return threebyte2num([2,0,0]) + (bank*8+pn)*448;
-}
-
 function allowDrop(ev) {
 	ev.preventDefault();
 }
@@ -216,6 +192,26 @@ function drop(ev) {
 	});
 }
 
+function displayNames(tab, src, bank, page) {
+	var arr = document.getElementsByClassName(tab);
+	var i = 0;
+	var tabdat;
+	let btab = src[bank];
+	if (btab && page == 0) {
+		tabdat = btab.slice(0,64);
+	} else if (btab) {
+		tabdat = btab.slice(64);
+	}
+	if (tabdat) {
+		tabdat.forEach((dt) => {
+			arr[i++].innerText = dt;
+		});
+	} 
+	for (;i<arr.length;) {
+		arr[i++].innerText = "";
+	}
+}
+
 function prepareDnd() {
 	var i;
 	var arr = document.getElementsByClassName("spname");
@@ -229,8 +225,30 @@ function prepareDnd() {
 		arr[i].setAttribute("draggable", true);
 		arr[i].id = "f" + i;
 		arr[i].setAttribute("ondragstart","dragStart(event)");
+	}	
+}
+
+// closure
+function makeDisplayNames(bank, page) {
+	return function() {
+		displayNames("spname", SynthPatches, bank, page);
 	}
-	
+}
+
+const ButtonLabels = "ABCDEFGH";
+function prepareSwitchTable() {
+	var i;
+	var arr = document.getElementsByClassName("slb");
+	for (i=0; i < arr.length; i++) {
+		let digit = i % 2 + 1;
+		let btn = document.createElement("button");
+		btn.type = "button";
+		let bank = Math.trunc(i/2);
+		let page = digit - 1;
+		btn.onclick = makeDisplayNames(bank, page);
+		btn.innerText = ButtonLabels[Math.trunc(i/2)] + digit
+		arr[i].appendChild(btn);
+	}
 }
 	
 function displayForm() {
@@ -266,14 +284,14 @@ function displayForm() {
 	document.getElementById("checkbutton").addEventListener('click',readCurrentPatch);
 	document.getElementById("selInterface").addEventListener('click',selectInterface);
 	//document.getElementById("writepatch").addEventListener('click',);
-	document.getElementById("readMem").addEventListener('click',readMemory);
+	document.getElementById("readMem").addEventListener('click',readMemoryBanks);
 	document.getElementById("writeMem").addEventListener('click',writeMemory);
-	//document.getElementById("quitbutton").addEventListener('click',quit);
 	document.getElementById("readFile").addEventListener('click',readFile);
 	document.getElementById("writeFile").href = "http://localhost:10532/writeFile.syx?Mdl=" + Model;
 	document.getElementById("swapbutton").addEventListener('click',swap);
 	prepareDnd();
-	//window.addEventListener('beforeunload',forcequit);
 }
 
-window.onload = displayForm;
+window.addEventListener("load", displayForm);
+window.addEventListener("load", prepareSwitchTable);
+

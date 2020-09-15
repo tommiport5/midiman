@@ -9,7 +9,7 @@
 <script>
 const Model = "access virus b";
 </script>
-<script src="/ui.js"></script> 
+<script src="/accessui.js"></script> 
 </head>
 <body>
 <div class="container">
@@ -33,7 +33,7 @@ Midi Outputs
 </span>
 <span>
 <label for="MidiChan">
-Midi Channel
+DeviceId
 </label>
 <select id="MidiChan">
 <option>1</option>
@@ -58,6 +58,10 @@ Midi Channel
 <button type="button" class="nav_item" id="readMem">Read Memory</button>
 <button type="button" class="nav_item" id="writeMem">Write Memory</button>
 </div>
+<table class="seltab">
+<tr><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td></tr>
+<tr><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td></tr>
+</table>
 <table ondrop="drop(event)" ondragover="allowDrop(event)">
 <th class="frameless"></th><th colspan="8">Patch</th>
 <tr><td rowspan=8>Bank</td>
@@ -83,7 +87,7 @@ Midi Channel
 <label for="fname">File to Read (*.syx)</label>
 <input id="fname" name="fname" type="file">
 <button type="button" id="readFile">Read File</button>
-<a href="http://localhost:10532/writeFile.syx" class="button" download>Write File</a>
+<a id="writeFile" class="button" download>Write File</a>
 </form>
 </span>
 <table ondrop="drop(event)" ondragover="allowDrop(event)">
