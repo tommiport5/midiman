@@ -191,10 +191,10 @@ class AccessSysex extends Sysex {
 	
 	_buildTelegram() {
 		if (this._command in AccessDumpCommands) {
-			return [this._brand, [this._model, this._channel, this._channel, this._command].concat(this.rawData, [this._checksum() & 0xf7])];
+			return [this._brand, [this._model, this._channel, this._command].concat(this.rawData, [this._checksum() & 0xf7])];
 		} else  {
 			// request telegrams contain no checksum
-			return [this._brand, [this._model, this._channel, this._channel, this._command].concat(this.rawData)];
+			return [this._brand, [this._model, this._channel, this._command].concat(this.rawData)];
 		}
 	}
 }

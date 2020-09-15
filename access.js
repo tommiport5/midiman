@@ -18,29 +18,7 @@ module.exports = class Access {
 		this._clipboard = new Patch();
 	}
 	
-	isThis(MIn, MOut, MChan) {
-		return this.mIn.id == MIn.id && 
-			   this.mOut.id == MOut.id && 
-			   this.mChan == MChan;
-	}
-	
-	static getInstance(MIn, MOut, MChan) {
-		var nins;
-		theInstances.forEach((ins) => {
-			if (ins.isThis(MIn, MOut, MChan)) 
-				nins = ins;
-		});
-		if (nins) return nins;
-		nins = new Access(MIn, MOut, MChan);
-		console.log(`new Access instance for ${MIn.id}, ${MOut.id}, ${MChan}`);
-		theInstances.unshift(nins);	// always return the last with getSingle()
-		return nins;
-	}
-	
-	static getSingle() {
-		return theInstances[0];
-	}
-	
+
 	get sysexData() {
 		return this.DataSet.raw;
 	}
@@ -61,21 +39,17 @@ module.exports = class Access {
 		});
 	}
 	
-	readMemoryFromSynth() {
+	readMemoryFromSynth(postdat) {
+		if (postdat.Bank == 0) this.SynthPatches = [];
 		return new Promise((resolve,reject) => {
-			Patch.waitForWSD(this.mIn).then((sx) => {
-				// console.log(`received 0x${sx.command.toString(16)}`);
-				Patch.readMemoryFromSynth(this.mIn, this.mOut, this.mChan).then((pat) => {
-					var Names = [];
-					this.SynthPatches = pat;
-					pat.forEach((pt) => {
-						Names.push(pt.patchname);
-					});
-					resolve(Names);
-				}).catch((err) => {
-					reject(err);
+			Patch.readMemoryBankFromSynth(this.mIn, this.mOut, this.mChan, postdat.Bank).then((pat) => {
+				let Names = [];
+				this.SynthPatches.push(pat);
+				pat.forEach((bk) => {
+						Names.push(bk.patchname);
 				});
-			}).catch ((err) => {
+				resolve(Names);
+			}).catch((err) => {
 				reject(err);
 			});
 		});
