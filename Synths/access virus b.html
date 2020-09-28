@@ -13,7 +13,7 @@ const Model = "access virus b";
 </head>
 <body>
 <div class="container">
-<p id="Result"></p>
+<div id="Result"></div>
 <div id="synth" class="framed">
 <h1>Synth</h1>
 <div>
@@ -76,9 +76,11 @@ DeviceId
 </table>
 </div>
 <span class="bni">
-<button type="button" id="swapbutton">Swap</button><label for="c">Clipboard</label><p class="clipboard" id="c" ondragstart="dragStart(event)" draggable=true ondrop="drop(event)" ondragover="allowDrop(event)"></p>
-<button type="button" class="nav_item" id="checkbutton">Read Current Patch</button>
-<a href="http://localhost:10532/writePatch.syx" class="button" download>Write Patch To File</a>
+<button type="button" id="swapbutton">Swap</button>
+<label for="c">Clipboard</label><p class="clipboard" id="C" ondragstart="dragStart(event)" draggable=true ondrop="drop(event)" ondragover="allowDrop(event)"></p>
+<button type="button" class="nav_item" id="readpatch">Read Current Patch</button>
+<button type="button" class="nav_item" id="writepatch">Write To Synth</button>
+<a href="http://localhost:10532/writePatch.syx?Mdl=access+virus+b" class="button" download>Write To File</a>
 </span>
 <div class="framed" id="file">
 <h1>File</h1>
@@ -87,9 +89,13 @@ DeviceId
 <label for="fname">File to Read (*.syx)</label>
 <input id="fname" name="fname" type="file">
 <button type="button" id="readFile">Read File</button>
-<a id="writeFile" class="button" download>Write File</a>
+<a href="http://localhost:10532/writeFile.syx?Mdl=access+virus+b" class="button" download>Write File</a>
 </form>
 </span>
+<table class="seltab">
+<tr><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td></tr>
+<tr><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td></tr>
+</table>
 <table ondrop="drop(event)" ondragover="allowDrop(event)">
 <th class="frameless"></th><th colspan="8">Patch</th>
 <tr><td rowspan=8>Bank</td>

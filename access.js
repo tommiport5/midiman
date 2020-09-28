@@ -27,12 +27,22 @@ module.exports = class Access {
 		return this._clipboard;
 	}
 	
-	getCurrentPatch() {
+	readCurrentPatch() {
 		var curpat = new Patch (this.mIn, this.mOut, this.mChan);
 		return new Promise((resolve,reject) => {
 			curpat.readFromSynth().then((ign) => {
 				this._clipboard = curpat;
 				resolve(curpat);
+			}).catch ((e) => {
+				reject(e);
+			});
+		});
+	}
+	
+	writeCurrentPatch() {
+		return new Promise((resolve,reject) => {
+			this._clipboard.writeToSynth(this.mOut, this.mChan).then((ign) => {
+				resolve(this.clipboard);
 			}).catch ((e) => {
 				reject(e);
 			});
@@ -59,21 +69,11 @@ module.exports = class Access {
 		// Sysex.trace = true;
 		return new Promise((resolve, reject) => {
 			if (this.SynthPatches == undefined) return reject(new Error("No patches loaded"));
-			Patch.waitForRQD(this.mIn).then((sx) => {
-				let Ret = Patch.waitForACK(this.mIn);
-				Patch.anounceAllPatches(this.mOut, this.mChan);
-				return Ret;
-			}).then((sx) => {
-				return Patch.writeMemoryToSynth(this.SynthPatches, this.mIn, this.mOut, this.mChan);
-			}).then(() => {
+				Patch.writeMemoryToSynth(this.SynthPatches, this.mOut, this.mChan);
 				resolve("Ok");
 			}).catch ((e) => {
 				reject(new Error(e));
 			});
-			// must return a Promise here, or the caller will break on 'then'
-			// this is, what the return statement above does.
-			// the last then or the catch resolve or reject the returned promise
-		});
 	}
 	
 	readMemoryFromDataURL(postdat) {
@@ -89,8 +89,12 @@ module.exports = class Access {
 				for (var i=0; i< Dat.length; i++)
 					DatArr[i] = Dat.charCodeAt(i);
 				this.FilePatches = Patch.readMemoryFromBlob(DatArr);
-				this.FilePatches.forEach((pt) => {
-					Names.push(pt.patchname);
+				this.FilePatches.forEach((bank) => {
+					let bk = [];
+					bank.forEach((pt) => {
+						bk.push(pt.patchname);
+					});
+					Names.push(bk);
 				});
 				resolve(Names);
 			} catch (e) {
@@ -117,7 +121,7 @@ module.exports = class Access {
 	}
 	
 	/**
-	 * writeMemoryToData
+	 * writePatchToData
 	 * The current role is MIDI-Server and we create a sysex file for download to the client.
 	 * The browser will store it there.
 	 */
@@ -133,6 +137,10 @@ module.exports = class Access {
 		});
 	}
 	
+	/**
+	 * swap
+	 * swaps the SynthPatches with the FilePatches completely.
+	 */
 	swap() {
 		var tmp = this.FilePatches;
 		this.FilePatches = this.SynthPatches;
@@ -140,21 +148,24 @@ module.exports = class Access {
 	}
 	
 	_getOrSetVar(id, value) {
+		var bank;
 		var ind;
 		switch (id[0]) {
 			case 'c':
-				if (value !== undefined) this._clipboard = value;
+				if (value != undefined) this._clipboard = value;
 				return this._clipboard;
 				break;
 			case 's':
-				ind = Number(id.substr(1));
-				if (value !== undefined) this.SynthPatches[ind] = value;
-				else return this.SynthPatches[ind];
+				bank = id.charCodeAt(1) - "A".charCodeAt(0);
+				ind = Number(id.substr(2));
+				if (value != undefined) this.SynthPatches[bank][ind] = value;
+				else return this.SynthPatches[bank][ind];
 				break;
 			case 'f':
-				ind = Number(id.substr(1));
-				if (value !== undefined) this.FilePatches[ind] = value;
-				else return this.FilePatches[ind];
+				bank = id.charCodeAt(1) - "A".charCodeAt(0);
+				ind = Number(id.substr(2));
+				if (value != undefined) this.FilePatches[bank][ind] = value;
+				else return this.FilePatches[bank][ind];
 				break;
 		}
 	}

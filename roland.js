@@ -68,7 +68,7 @@ module.exports = class Roland {
 	}
 	*/
 	
-	getCurrentPatch() {
+	readCurrentPatch() {
 		var curpat = new Patch (this.mIn, this.mOut, this.mChan);
 		return new Promise((resolve,reject) => {
 			curpat.readFromSynth().then((ign) => {
@@ -188,17 +188,17 @@ module.exports = class Roland {
 		var ind;
 		switch (id[0]) {
 			case 'c':
-				if (value !== undefined) this._clipboard = value;
-				return this._clipboard;
+				if (value != undefined) this._clipboard = value;
+				else return this._clipboard;
 				break;
 			case 's':
 				ind = Number(id.substr(1));
-				if (value !== undefined) this.SynthPatches[ind] = value;
+				if (value != undefined) this.SynthPatches[ind] = value;
 				else return this.SynthPatches[ind];
 				break;
 			case 'f':
 				ind = Number(id.substr(1));
-				if (value !== undefined) this.FilePatches[ind] = value;
+				if (value != undefined) this.FilePatches[ind] = value;
 				else return this.FilePatches[ind];
 				break;
 		}
