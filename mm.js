@@ -137,17 +137,39 @@ handlePost('/move',function (req,res) {
 	res.end(JSON.stringify({result:getInstance(req.Mdl).move(req.from, req.to)}));
 });
 
-handlePost('/check', (postdat, res) => {
+handlePost('/readPatch', (postdat, res) => {
 	var Msg;
 	var PatchName;
 	try {
-		getInstance(postdat.Mdl).getCurrentPatch().then((patch) => {
+		getInstance(postdat.Mdl).readCurrentPatch().then((patch) => {
 				let Msg = patch.patchname;
 				res.setHeader('Content-Type', 'text/json; charset=utf-8');
 				res.setHeader("cache-control", "no-store");
 				res.end('{"patch":"' + Msg + '"}');
 			}).catch((value) =>{
-				let Msg = 'Could not find device, reason: ' + value;
+				let Msg = 'Could not read patch, reason: ' + value;
+				res.setHeader('Content-Type', 'text/json; charset=utf-8');
+				res.setHeader("cache-control", "no-store");
+				res.end('{"error":"' + Msg + '"}');
+			});
+	} catch(e) {
+		res.setHeader('Content-Type', 'text/json; charset=utf-8');
+		res.setHeader("cache-control", "no-store");
+		res.end('{"error":"' + e + '"}');
+	}	
+});
+
+handlePost('/writePatch', (postdat, res) => {
+	var Msg;
+	var PatchName;
+	try {
+		getInstance(postdat.Mdl).writeCurrentPatch().then((patch) => {
+				let Msg = patch.patchname;
+				res.setHeader('Content-Type', 'text/json; charset=utf-8');
+				res.setHeader("cache-control", "no-store");
+				res.end('{"patch":"' + Msg + '"}');
+			}).catch((value) =>{
+				let Msg = 'Could not write patch, reason: ' + value;
 				res.setHeader('Content-Type', 'text/json; charset=utf-8');
 				res.setHeader("cache-control", "no-store");
 				res.end('{"error":"' + Msg + '"}');
@@ -291,12 +313,12 @@ app.get('/writePatch.syx', (req, res) => {
 
 /**
  * SynthPage.html
- * The request for this page will not only deliver the page for the mdl type synth
+ * The request for this page will not only deliver the page for the Mdl type synth
  * but also add the Synth to MySettings.
- * The "Generic" mdl wil never bne entered into synths.json, but is used to create a new entry.
+ * The "Generic" Mdl wil never bne entered into synths.json, but is used to create a new entry.
  */
 app.get('/SynthPage.html', (req, res) => {
-  var mod = req.query.mdl;
+  var mod = req.query.Mdl;
   var ret = readSettings(mod);
   if (ret == undefined) {
 	  deliver(src_dir + "/Synths/Generic.html", res);
@@ -313,7 +335,7 @@ app.get('/inputs', (req, res) =>{
   WebMidi.inputs.forEach((inp) => {
 	  lst.push(inp.name);
   });
-  var mod = req.query.mdl;
+  var mod = req.query.Mdl;
   var ret = readSettings(mod);
   if (ret == undefined) 
 	answ = {list: lst, error: `Cannot read synths.json in ${os.homedir()}`};
@@ -328,7 +350,7 @@ app.get('/outputs', (req, res) =>{
   WebMidi.outputs.forEach((ot) => {
 	  lst.push(ot.name);
   });
-  var mod = req.query.mdl;
+  var mod = req.query.Mdl;
   var ret = readSettings(mod);
   if (ret == undefined) 
 	answ = {list:lst, error: `Cannot read synths.json in ${os.homedir()}`};

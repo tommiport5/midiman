@@ -109,7 +109,7 @@ module.exports = class RolandPatch {
 				var Ret = ds.listen(This.mIn);
 				rd.append([0,0,0]);
 				rd.append(RolandPatch.num2threebyte(256));
-				console.log("sending >>" + rd.sendData + "<<");
+				console.log("sending >>" + rd.asSendData() + "<<");
 				rd.send(This.mOut);
 				Ret.then((sx) => {
 					//if (sx.command == _RJC) throw "rejected";
@@ -426,7 +426,7 @@ module.exports = class RolandPatch {
 			fs: FillState.up1,
 			pnum: 0};
 		while (Accu.pnum <64) {
-			dat = dat.concat(RolandPatch._makePackets(Accu,0).blob);
+			dat = dat.concat(RolandPatch._makePackets(Accu,0).asBlob());
 		}
 		//console.log(`_makePackets ended with pnum ${Accu.pnum}, fs ${Accu.fs}`);
 		return Buffer.from(Uint8Array.from(dat));
@@ -438,7 +438,7 @@ module.exports = class RolandPatch {
 			fs: FillState.up1,
 			pnum: 0};
 		while (Accu.pnum <1) {
-			dat = dat.concat(RolandPatch._makePackets(Accu,0).blob);
+			dat = dat.concat(RolandPatch._makePackets(Accu,0).asBlob());
 		}
 		//console.log(`_makePackets ended with pnum ${Accu.pnum}, fs ${Accu.fs}`);
 		return Buffer.from(Uint8Array.from(dat));

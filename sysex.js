@@ -84,13 +84,13 @@ class Sysex {
 		});
 	}
 
-	get sendData() {
+	asSendData() {
 		return this._linear().map((val) => {
 			return "0x" + val.toString(16);
 		});
 	}
 	
-	get blob() {
+	asBlob() {
 		var net = this._linear();
 		net.unshift(0xf0);
 		net.push(0xf7);
@@ -98,7 +98,7 @@ class Sysex {
 	}
 	
 	send(out) {
-		if (_trace) console.log("sending sysex:   " + this.sendData.slice(0,16));
+		if (_trace) console.log("sending sysex:   " + this.asSendData().slice(0,16));
 		var sx = this._buildTelegram();
 		out.sendSysex(sx[0], sx[1]);
 	}

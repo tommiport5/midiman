@@ -14,12 +14,7 @@ const _MBR = 0x33;
 const _SID = 0x10;
 const _MUD = 0x11;
 
-const FillState = Object.freeze ({
-	__A: 1,
-	__B: 2,
-	__C: 3,
-	__D: 4,
-});
+const NumWriteBanks = 2;	// only bank A and B storable
 
 function delay(ms) {
 	return new Promise((resolve) => {
@@ -54,8 +49,8 @@ module.exports = class AccessPatch {
 	}
 	
 	/**
-	 *readFromSynth
-	 * reads one patch into this object
+	 * readFromSynth
+	 * reads the current edit patch into this object
 	 */
 	readFromSynth() {
 		return new Promise((resolve,reject) => {
@@ -64,7 +59,7 @@ module.exports = class AccessPatch {
 				var ds = new Sysex();
 				var Ret = ds.listen(this.mIn);
 				rd.append([0,0x40]);
-				console.log("sending >>" + rd.sendData + "<<");
+				console.log("sending >>" + rd.asSendData() + "<<");
 				rd.send(this.mOut);
 				Ret.then((sx) => {
 					let add = sx.raw.slice(0,2);
@@ -73,127 +68,53 @@ module.exports = class AccessPatch {
 					this.__A = sxd.slice(0,128);
 					this.__B = sxd.slice(128,256);
 					this._complete = true;
-					return resolve("ok");
+					resolve("ok");
 				}).catch ((e) =>{
 					console.log("readFromSynth: " + e);
-					return reject(e);
+					reject(e);
 				});
 			} catch(e) {
 				console.log('exception occured in read from synth: ' + e);
-				return reject(e);
+				reject(e);
 			}
 		});
 	}
 	
-
-
-	/*
-	 * makePackets
-	 * makes Midi sysex packets from 64 Rolandpatches
-	 * special here: the last patch must have one byte less than the usual
-	 * 448, because the D50 only accepts 64*448-1 bytes of patch data
+	/**
+	 * writeToSynth
+	 * writes this patch into the current edit patch on the synth
 	 */
-	static _makePackets(accu, mChan) {
-		var dcount = 0;
-		var dat = new Sysex();
-		dat.brand = 0x41;
-		dat.channel = mChan;
-		dat.model = 0x14;
-		dat.command = _DAT;
-		dat.raw = RolandPatch.num2threebyte(RolandPatch.fs2mem(accu.pnum, accu.fs));
-		for (;;) {
-			switch (accu.fs) {
-				case FillState.up1:
-					if (accu.Pts[accu.pnum] && accu.Pts[accu.pnum].up1) {
-						dat.append(accu.Pts[accu.pnum].up1);
-					} else {
-						return dat;
-					}
-					accu.fs = FillState.up2;
-					if (++dcount >= 4) return dat;
-				case FillState.up2:
-					if (accu.Pts[accu.pnum] && accu.Pts[accu.pnum].up2) {
-						dat.append(accu.Pts[accu.pnum].up2);
-					} else {
-						let dt = new Array(64);
-						dt.fill(0);
-						dat.append(dt);
-					}
-					accu.fs = FillState.upc;
-					if (++dcount >= 4) return dat;
-				case FillState.upc:
-					if (accu.Pts[accu.pnum] && accu.Pts[accu.pnum].upc) {
-						dat.append(accu.Pts[accu.pnum].upc);
-					} else {
-						let dt = new Array(64);
-						dt.fill(0);
-						dat.append(dt);
-					}
-					accu.fs = FillState.lp1;
-					if (++dcount >= 4) return dat;
-				case FillState.lp1:
-					if (accu.Pts[accu.pnum] && accu.Pts[accu.pnum].lp1) {
-						dat.append(accu.Pts[accu.pnum].lp1);
-					} else {
-						let dt = new Array(64);
-						dt.fill(0);
-						dat.append(dt);
-					}
-					accu.fs = FillState.lp2;
-					if (++dcount >= 4) return dat;
-				case FillState.lp2:
-					if (accu.Pts[accu.pnum] && accu.Pts[accu.pnum].lp2) {
-						dat.append(accu.Pts[accu.pnum].lp2);
-					} else {
-						let dt = new Array(64);
-						dt.fill(0);
-						dat.append(dt);
-					}
-					accu.fs = FillState.lpc;
-					if (++dcount >= 4) return dat;
-				case FillState.lpc:
-					if (accu.Pts[accu.pnum] && accu.Pts[accu.pnum].lpc) {
-						dat.append(accu.Pts[accu.pnum].lpc);
-					} else {
-						let dt = new Array(64);
-						dt.fill(0);
-						dat.append(dt);
-					}
-					accu.fs = FillState.pd;
-					if (++dcount >= 4) return dat;
-				case FillState.pd:
-					if (accu.Pts[accu.pnum] && accu.Pts[accu.pnum].pd) {
-						if (accu.pnum ==63)
-							dat.append(accu.Pts[accu.pnum].pd.slice(0,63));
-						else
-							dat.append(accu.Pts[accu.pnum].pd);
-					} else {
-						let dt;
-						if (accu.pnum ==63)
-							dt = new Array(63);
-						else
-							dt = new Array(64);
-						dt.fill(0);
-						dat.append(dt);
-					}
-					accu.fs = FillState.up1;
-					if (++accu.pnum >= 64) return dat;;
-					if (++dcount >= 4) return dat;
-			}
+	writeToSynth(mOut, mChan) {
+		if (!this._complete) {
+			return Promise.reject("no patch");
 		}
-	}	 
+		return new Promise((resolve,reject) => {
+			try {
+				var dump = new Sysex(mChan, _SID);
+				dump.append([0,0x40]);
+				dump.append(this.__A);
+				dump.append(this.__B);
+				dump.send(mOut);
+				resolve("ok");
+			} catch(e) {
+				console.log('exception occured in write to synth: ' + e);
+				reject(e);
+			}
+		});
+	}
+				
 
 	/**
 	 * readMemory
 	 * reads the internal memory and returns an array of AccessPatch objects
-	 * must not read all banks in one go, because the browser gets unpatient :-(
+	 * cannot read all banks in one go, because the browser gets unpatient :-(
 	 */
 	static async readMemoryBankFromSynth(mIn, mOut, mChan, bank) {
 		try {
 			var resp;
 			var ds = new Sysex();
 			var Result = new Array(128);
-			Sysex.trace = true;
+			// Sysex.trace = true;
 			let sbr = new Sysex(mChan, _SBR);
 			sbr.append([bank+1]);
 			sbr.send(mOut);
@@ -219,82 +140,82 @@ module.exports = class AccessPatch {
 	}
 
 	static readMemoryFromBlob(fbuf) {
-		var Accu = {Result: new Array(64), 
-			fs: FillState.up1,
-			pnum: 0,
-			overflow: [], 
-			expected: 32768
-		};
-		
+		var Result = [];
 		var som;
 		var eom;
 		if (fbuf[0] != 0xf0) throw "Not a sysex file";
 		som = 1;
 		while (som < fbuf.length) {
-			eom = fbuf.indexOf(0xf7, som);
-			RolandPatch._fillResult(fbuf.slice(som+4, eom-1),Accu);
-			if (eom+1 < fbuf.length && fbuf[eom+1] != 0xf0) 
-				throw "Syntax error in sysex file";
-			som = eom+2;
+			let bank = [];
+			for (let i=0; i<128; i++) {
+				let patch = new AccessPatch();
+				eom = fbuf.indexOf(0xf7, som);
+				patch.__A = fbuf.slice(som+8,som+136);	//3 id. 1 prod, 1 dev, 1 cmd, 1 bnum, 1 pnum
+				patch.__B = fbuf.slice(som+136, eom);
+				patch._complete = true;
+				bank.push(patch);
+				som = eom+2;
+				if (som >= fbuf.length) break;	//preemptive termination is ok
+				if (fbuf[eom+1] != 0xf0) 
+					throw "Syntax error in sysex file";
+			}
+			Result.push(bank);
 		}
-		return Accu.Result;
+		return Result;
 	}
 	
+	/**
+	 * writeMemoryToBlob
+	 * constructs a.asBlob from all the patches in datarr converted into sysexes
+	 * implementation:
+	 * iterate over all the banks in datarr
+	 *		iterate over all the patches
+	 *			make one sysex and concat it to the blob
+	 */
 	static writeMemoryToBlob(datarr) {
 		var dat = [];
-		var Accu = {Pts: datarr, 
-			fs: FillState.up1,
-			pnum: 0};
-		while (Accu.pnum <64) {
-			dat = dat.concat(RolandPatch._makePackets(Accu,0).blob);
-		}
-		//console.log(`_makePackets ended with pnum ${Accu.pnum}, fs ${Accu.fs}`);
+		let bnum = 1;
+		datarr.forEach((bank) => {
+			let pnum = 0;
+			bank.forEach((pt)=> {
+				let pts = new Sysex(0, _SID);
+				pts.append([bnum, pnum]);
+				pts.append(pt.__A);
+				pts.append(pt.__B);
+				dat = dat.concat(pts.asBlob());
+				pnum++;
+			});
+			bnum++;
+		});
 		return Buffer.from(Uint8Array.from(dat));
 	}
 	
-	static writePatchToBlob(datarr) {
-		var dat = [];
-		var Accu = {Pts: [datarr, undefined],
-			fs: FillState.up1,
-			pnum: 0};
-		while (Accu.pnum <1) {
-			dat = dat.concat(RolandPatch._makePackets(Accu,0).blob);
-		}
-		//console.log(`_makePackets ended with pnum ${Accu.pnum}, fs ${Accu.fs}`);
+	static writePatchToBlob(pat) {
+		let pts = new Sysex(0, _SID);
+		pts.append([0, 0]);
+		pts.append(pat.__A);
+		pts.append(pat.__B);
+		var dat = pts.asBlob();
 		return Buffer.from(Uint8Array.from(dat));
 	}
 	
 	/**
 	 * writeMemoryToSynth
-	 * writes the array of 64 patches in Mem to the D50.
-	 * special here: I must be an async function to keep the handshake protocol
-	 * via await, but it must also return a Promise, so that the calling thread can
-	 * "join" this thread via "then"
+	 * writes all the banks in Mem to the Synth.
 	 */
-	static async writeMemoryToSynth(Mem, mIn, mOut, mChan) {
-		var Ret;
-		var ds = new Sysex();
-		var Accu = {Pts: Mem, 
-			fs: FillState.up1,
-			pnum: 0};
-			
-		while (Accu.pnum <64) {
-			Ret = ds.listen(mIn);
-			RolandPatch._makePackets(Accu, mChan).send(mOut);
-			let sx = await Ret;
-			if (sx.command != _ACK) {
-				console.log(`protocol error, received 0x${sx.command.toString(16)} instead of 0x43 in writeMemory`);
-				return Promise.reject(new Error("protocol error"));
-			}
+	static writeMemoryToSynth(Mem, mOut, mChan) {
+		var dat = [];
+		for (let bank=1; bank <= NumWriteBanks; bank++) {
+			let pnum = 0;
+			Mem[bank-1].forEach((pt)=> {
+				let pts = new Sysex(mChan, _SID);
+				pts.append([bank, pnum]);
+				pts.append(pt.__A);
+				pts.append(pt.__B);
+				pts.send(mOut);
+				pnum++;
+			});
 		}
-		Ret = ds.listen(mIn);
-		var eod = new Sysex();
-		eod.brand = 0x41;
-		eod.channel = mChan;
-		eod.model = 0x14;
-		eod.command = _EOD;
-		eod.send(mOut);
-		return Ret;
 	}
 }
 		
