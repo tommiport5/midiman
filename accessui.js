@@ -20,8 +20,8 @@ const ButtonPrefix = "SF";
  * ids should be unique on a page and should not be changed once they are assigned.
  */
 class Navi {
-	constructor(ptab, seltab) {
-		this._ptab = ptab;
+	constructor(pid, seltab) {
+		this._pelem = document.getElementById(pid);
 		this._seltab = seltab;
 		this._patches = undefined;
 		this._curpage = undefined;
@@ -68,7 +68,7 @@ class Navi {
 	}
 	
 	/**
-	 * prepareSwitchTable
+	 * prepareSwitchTable 
 	 * only do it once for each instance!
 	 */
 	prepareSwitchTable() {
@@ -103,8 +103,10 @@ class Navi {
 	}
 	
 	displayNames(bank, page) {
-		var arr = document.getElementsByClassName(this._ptab);
+		var arr = this._pelem.querySelectorAll(".pname");
+		var ind = this._pelem.querySelectorAll(".pnh");
 		var i = 0;
+		var startAt;
 		var tabdat;
 		this._highlightButton(bank, page);
 		if (this._patches == undefined) {
@@ -112,6 +114,22 @@ class Navi {
 				arr[i++].innerText = "";
 			}
 			return;
+		}
+		if (page == 0) {
+			for (let n=0; n<ind.length; n++) {
+				ind[n].innerText = n.toString() + "_";
+			}
+			startAt = 0;
+		} else {
+			for (let n=0; n<ind.length; n++) {
+				ind[n].innerText = (n+6).toString() + "_";
+			}
+			startAt = 4;
+		}
+		for (; i<startAt;) {
+			arr[i].innerText = "";
+			arr[i].setAttribute("draggable", false);
+			arr[i++].removeAttribute("ondragstart");
 		}
 		let btab = this._patches[bank];
 		if (btab && page == 0) {
@@ -121,22 +139,27 @@ class Navi {
 		}
 		if (tabdat) {
 			tabdat.forEach((dt) => {
-				arr[i++].innerText = dt;
+				arr[i].innerText = dt;
+				arr[i].setAttribute("draggable", true);
+				arr[i].id = this._buttonPrefix() + i;	
+				arr[i++].setAttribute("ondragstart","dragStart(event)");
 			});
 		} 
 		for (;i<arr.length;) {
-			arr[i++].innerText = "";
+			arr[i].innerText = "";
+			arr[i].setAttribute("draggable", false);
+			arr[i++].removeAttribute("ondragstart");
 		}
 	}
 	
 	/**
-	 * prepareDnd
+	 * prepareDnd !!!obsolete, is done during displayNames
 	 * Assigns ids to the drop sources and targets.
 	 * The ids must be different for file and synth, but independent of the currently displayed page,
 	 * so they are "S" or "F" followed by the patch number 0-63.
 	 */
 	prepareDnD() {
-		var arr = document.getElementsByClassName(this._ptab);
+		var arr = this._pelem.querySelectorAll(".pname");
 		for (var i=0; i < arr.length; i++) {
 			arr[i].setAttribute("draggable", true);
 			arr[i].id = this._buttonPrefix() + i;	
@@ -148,7 +171,7 @@ class Navi {
 	 * serverFromTarget
 	 * determines the patch id for the server from the curpage and the drop target (or drop source).
 	 * The current page member consists of the instance prefix(S or F), the bank letter (A - H) and the page number (0 or 1).
-	 * The drop targets/sources are "S" or "F" followed by the page number 0-63.
+	 * The drop targets/sources are "S" or "F" followed by the patch number 0-69. (Take care of the "decimal view"!)
 	 * The server string takes the form [sf][A-H]\d{1,3} with the number in the range 0-127.
 	 * A special case is the clipboard, which has only "c" as the server string.
 	 */
@@ -161,12 +184,12 @@ class Navi {
 			case "S":
 				sv = "s" + SynthPatches.curpage.substr(1,1);
 				num = Number(tg.substr(1));
-				if (SynthPatches.curpage.charAt(2) == 2) num += 64;
+				if (SynthPatches.curpage.charAt(2) == 2) num += 60;
 				return sv + num;
 			case "F":
 				sv = "f" + FilePatches.curpage.substr(1,1);
 				num = Number(tg.substr(1));
-				if (FilePatches.curpage.charAt(2) == 2) num += 64;
+				if (FilePatches.curpage.charAt(2) == 2) num += 60;
 				return sv + num;
 		}
 		
@@ -197,8 +220,8 @@ class Navi {
 }
 
 
-var SynthPatches = new Navi("spname","slb");
-var FilePatches = new Navi("fpname", "flb");
+var SynthPatches;
+var FilePatches; 
 
 function forcequit() {
   var xhttp = new XMLHttpRequest();
@@ -291,6 +314,7 @@ function readCurrentPatch() {
 }
 
 function writeCurrentPatch() {
+	
 	let Settings = {Mdl: Model};
 	getJsonParam('http://localhost:' + port +'/writePatch', JSON.stringify(Settings), (data) => {
 		if (data.error)
@@ -362,6 +386,7 @@ function dragStart(ev) {
 
 function drop(ev) {
 	ev.preventDefault();
+	if (!ev.dataTransfer) return;
 	let src_id = ev.dataTransfer.getData("id");
 	let src_txt = ev.dataTransfer.getData("text");
 	let dest_id = ev.target.id;
@@ -394,6 +419,8 @@ function prepareDnd() {
 
 function displayForm() {
 	var Settings;
+	SynthPatches = new Navi("stab","slb");
+	FilePatches = new Navi("ftab","flb");
 	var sel1 = document.getElementById("MidiOut");
 	getJsonData('http://localhost:' + port +'/outputs?Mdl=' + Model, (answ) => {
 		answ.list.forEach((nam) => {
@@ -429,7 +456,7 @@ function displayForm() {
 	document.getElementById("writeMem").addEventListener('click',writeMemory);
 	document.getElementById("readFile").addEventListener('click',readFile);
 	document.getElementById("swapbutton").addEventListener('click',swap);
-	prepareDnd();
+	// prepareDnd();
 }
 
 window.addEventListener("load", displayForm);

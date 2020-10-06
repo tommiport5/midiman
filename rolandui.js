@@ -87,7 +87,7 @@ function selectInterface() {
 
 function readCurrentPatch() {
 	let Settings = {Mdl: Model};
-	getJsonParam('http://localhost:' + port +'/check', JSON.stringify(Settings), (data) => {
+	getJsonParam('http://localhost:' + port +'/readPatch', JSON.stringify(Settings), (data) => {
 		if (data.error)
 			document.getElementById("Result").innerText = data.error;
 		else
@@ -238,7 +238,7 @@ function displayNames(tab, src) {
 function displayForm() {
 	var Settings;
 	var sel1 = document.getElementById("MidiOut");
-	getJsonData('http://localhost:' + port +'/outputs?mdl=' + Model, (answ) => {
+	getJsonData('http://localhost:' + port +'/outputs?Mdl=' + Model, (answ) => {
 		answ.list.forEach((nam) => {
 			var opt = document.createElement("OPTION");
 			opt.text = nam;
@@ -251,7 +251,7 @@ function displayForm() {
 			document.getElementById("Result").innerText = answ.error;			
 	});
 	var sel2 = document.getElementById("MidiIn");
-	getJsonData('http://localhost:' + port +'/inputs?mdl=' + Model, (answ) => {
+	getJsonData('http://localhost:' + port +'/inputs?Mdl=' + Model, (answ) => {
 		answ.list.forEach((nam) => {
 			var opt = document.createElement("OPTION");
 			opt.text = nam;
@@ -265,7 +265,7 @@ function displayForm() {
 			document.getElementById("Result").innerText = answ.error;			
 		}
 	});
-	document.getElementById("checkbutton").addEventListener('click',readCurrentPatch);
+	document.getElementById("readPatch").addEventListener('click',readCurrentPatch);
 	document.getElementById("selInterface").addEventListener('click',selectInterface);
 	//document.getElementById("writepatch").addEventListener('click',);
 	document.getElementById("readMem").addEventListener('click',readMemory);

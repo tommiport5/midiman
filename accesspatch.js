@@ -85,22 +85,21 @@ module.exports = class AccessPatch {
 	 * writes this patch into the current edit patch on the synth
 	 */
 	writeToSynth(mOut, mChan) {
+		// Sysex.trace = true;
 		if (!this._complete) {
 			return Promise.reject("no patch");
 		}
-		return new Promise((resolve,reject) => {
-			try {
-				var dump = new Sysex(mChan, _SID);
-				dump.append([0,0x40]);
-				dump.append(this.__A);
-				dump.append(this.__B);
-				dump.send(mOut);
-				resolve("ok");
-			} catch(e) {
-				console.log('exception occured in write to synth: ' + e);
-				reject(e);
-			}
-		});
+		try {
+			var dump = new Sysex(mChan, _SID);
+			dump.append([0,0x40]);
+			dump.append(this.__A);
+			dump.append(this.__B);
+			dump.send(mOut);
+			return Promise.resolve("ok");
+		} catch(e) {
+			console.log('exception occured in write to synth: ' + e);
+			return Promise.reject(e);
+		}
 	}
 				
 

@@ -66,7 +66,6 @@ module.exports = class Access {
 	}
 
 	writeMemoryToSynth() {
-		// Sysex.trace = true;
 		return new Promise((resolve, reject) => {
 			if (this.SynthPatches == undefined) return reject(new Error("No patches loaded"));
 				Patch.writeMemoryToSynth(this.SynthPatches, this.mOut, this.mChan);
@@ -126,6 +125,7 @@ module.exports = class Access {
 	 * The browser will store it there.
 	 */
 	writePatchToData() {
+		Sysex.trace = true;
 		return new Promise((resolve,reject) => {
 			if (this._clipboard == undefined) reject(new Error("Clipboard empty"));
 			try {

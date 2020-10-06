@@ -82,23 +82,28 @@ Midi Channel
 <button type="button" class="nav_item" id="writeMem">Write Memory</button>
 </div>
 <table ondrop="drop(event)" ondragover="allowDrop(event)">
-<th class="frameless"></th><th colspan="8">Patch</th>
-<tr><td rowspan=8>Bank</td>
+<thead>
+<tr><th class="frameless" colspan = "2"></th><th colspan="8">Patch</th></tr>
+<tr><th class="frameless" colspan = "2"></th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr>
+</thead>
+<tbody>
+<tr><td rowspan="8" class="bank-label">Bank</td><td>1</td>
 <td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
-<tr><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
-<tr><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
-<tr><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
-<tr><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
-<tr><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
-<tr><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
-<tr><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
+<tr><td>3</td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
+<tr><td>2</td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
+<tr><td>4</td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
+<tr><td>5</td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
+<tr><td>6</td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
+<tr><td>7</td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
+<tr><td>8</td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
+<tbody>
 </table>
 </div>
-<span class="bni">
+<div class="bni">
 <button type="button" id="swapbutton">Swap</button><label for="c">Clipboard</label><p class="clipboard" id="c" ondragstart="dragStart(event)" draggable=true ondrop="drop(event)" ondragover="allowDrop(event)"></p>
-<button type="button" class="nav_item" id="checkbutton">Read Current Patch</button>
+<button type="button" class="nav_item" id="readPatch">Read Current Patch</button>
 <a href="http://localhost:10532/writePatch.syx" class="button" download>Write Patch To File</a>
-</span>
+</div>
 <div class="framed" id="file">
 <h1>File</h1>
 <span>
@@ -110,16 +115,21 @@ Midi Channel
 </form>
 </span>
 <table ondrop="drop(event)" ondragover="allowDrop(event)">
-<th class="frameless"></th><th colspan="8">Patch</th>
-<tr><td rowspan=8>Bank</td>
+<thead>
+<tr><th class="frameless" colspan = "2"></th><th colspan="8">Patch</th></tr>
+<tr><th class="frameless" colspan = "2"></th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr>
+</thead>
+<tbody>
+<tr><td rowspan=8 class="bank-label">Bank</td><td>1</td>
 <td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
-<tr><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
-<tr><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
-<tr><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
-<tr><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
-<tr><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
-<tr><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
-<tr><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
+<tr><td>2</td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
+<tr><td>3</td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
+<tr><td>4</td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
+<tr><td>5</td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
+<tr><td>6</td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
+<tr><td>7</td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
+<tr><td>8</td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
+</tbody>
 </table>
 </div>
 </div>
