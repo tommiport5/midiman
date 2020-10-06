@@ -10,6 +10,7 @@ html {
 
 h1, h2, h3 { 
 	font-family: "Arial", "Helvetica";
+	margin: 1px;
 }
 
 a:link { color: #000000; }
@@ -20,7 +21,7 @@ body {
 	background: var(--bkg);
     background-repeat: no-repeat;
     background-attachment: fixed;	
-	margin-left: 1em;
+	padding-left: 1em;
 	}
 
 #Result, #synth, #file, #quitbutton {
@@ -28,22 +29,27 @@ body {
 }
 
 #Result {
-	top-margin: 2px;
-	bottom-margin: 2px;
-	height: 1.5em;
+	margin-top: 2px;
+	margin-bottom: 2px;
 }
 
 table, th, td { border:1px solid; border-collapse:collapse; border-spacing:2px; padding:2px;}
+th {max-height: 10px;}
 .fpname, .spname {
-	min-width: 10em;
+	min-width: 8em;
 	height: 10px;
 }
 table {
 	margin:3px;
 }
-th.frameless {
-	border-top-color: var(--bkg);
-	border-left-color: var(--bkg);
+.frameless {
+	border: none;
+}
+.bank-label {
+	writing-mode: vertical-rl;
+	transform: rotate(180deg);
+	font-weight: bold;
+	min-width: 10px;
 }
 
 .framed, .clipboard {
@@ -61,10 +67,11 @@ th.frameless {
 .bni {
 	display:grid;
 	gap: 1em;
-	grid-template-columns: repeat(8, 1fr);
-	max-height: 1em;
+	grid-template-columns: repeat(6, 1fr);
 	align-items: center;
 }
+
+.pnh, .bank-label {width: 2em;}
 
 label {
 	justify-self: end;

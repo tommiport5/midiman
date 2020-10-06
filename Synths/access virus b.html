@@ -62,26 +62,30 @@ DeviceId
 <tr><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td></tr>
 <tr><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td></tr>
 </table>
-<table ondrop="drop(event)" ondragover="allowDrop(event)">
-<th class="frameless"></th><th colspan="8">Patch</th>
-<tr><td rowspan=8>Bank</td>
-<td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
-<tr><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
-<tr><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
-<tr><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
-<tr><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
-<tr><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
-<tr><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
-<tr><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td><td class="spname"></td></tr>
+<table id="stab" ondrop="drop(event)" ondragover="allowDrop(event)">
+<thead>
+<tr><th class="frameless" colspan = "2"></th><th colspan="10">Patchnumber (Low)</th></tr>
+<tr><th class="frameless" colspan = "2"></th><th>_0</th><th>_1</th><th>_2</th><th>_3</th><th>_4</th><th>_5</th><th>_6</th><th>_7</th><th>_8</th><th>_9</th></tr>
+</thead>
+<tbody>
+<tr><td rowspan=8 class="bank-label">Patchnumber (High)</td><td class="pnh">0_</td>
+<td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td>,</tr>
+<tr><td class="pnh">1_</td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
+<tr><td class="pnh">2_</td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
+<tr><td class="pnh">3_</td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
+<tr><td class="pnh">4_</td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
+<tr><td class="pnh">5_</td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
+<tr><td class="pnh">6_</td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"><td class="pname"></td><td class="pname"></td></td></tr>
+</tbody>
 </table>
 </div>
-<span class="bni">
+<div class="bni">
 <button type="button" id="swapbutton">Swap</button>
 <label for="c">Clipboard</label><p class="clipboard" id="C" ondragstart="dragStart(event)" draggable=true ondrop="drop(event)" ondragover="allowDrop(event)"></p>
 <button type="button" class="nav_item" id="readpatch">Read Current Patch</button>
 <button type="button" class="nav_item" id="writepatch">Write To Synth</button>
 <a href="http://localhost:10532/writePatch.syx?Mdl=access+virus+b" class="button" download>Write To File</a>
-</span>
+</div>
 <div class="framed" id="file">
 <h1>File</h1>
 <span>
@@ -96,17 +100,21 @@ DeviceId
 <tr><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td></tr>
 <tr><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td></tr>
 </table>
-<table ondrop="drop(event)" ondragover="allowDrop(event)">
-<th class="frameless"></th><th colspan="8">Patch</th>
-<tr><td rowspan=8>Bank</td>
-<td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
-<tr><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
-<tr><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
-<tr><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
-<tr><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
-<tr><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
-<tr><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
-<tr><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td><td class="fpname"></td></tr>
+<table id="ftab" ondrop="drop(event)" ondragover="allowDrop(event)">
+<thead>
+<tr><th class="frameless" colspan = "2"></th><th colspan="10">Patchnumber (Low)</th></tr>
+<tr><th class="frameless" colspan = "2"></th><th>_0</th><th>_1</th><th>_2</th><th>_3</th><th>_4</th><th>_5</th><th>_6</th><th>_7</th><th>_8</th><th>_9</th></tr>
+</thead>
+<tbody>
+<tr><td rowspan=8 class="bank-label">Patchnumber (High)</td><td class="pnh">0_</td>
+<td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td>,</tr>
+<tr><td class="pnh">1_</td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
+<tr><td class="pnh">2_</td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
+<tr><td class="pnh">3_</td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
+<tr><td class="pnh">4_</td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
+<tr><td class="pnh">5_</td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
+<tr><td class="pnh">6_</td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"><td class="pname"></td><td class="pname"></td></td></tr>
+</tbody>
 </table>
 </div>
 </div>

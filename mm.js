@@ -338,7 +338,7 @@ app.get('/inputs', (req, res) =>{
   var mod = req.query.Mdl;
   var ret = readSettings(mod);
   if (ret == undefined) 
-	answ = {list: lst, error: `Cannot read synths.json in ${os.homedir()}`};
+	answ = {list: lst, error: `Cannot read .synths.json in ${os.homedir()}`};
   else
 	answ = {list: lst, settings: ret};
   res.end(JSON.stringify(answ));
@@ -353,7 +353,7 @@ app.get('/outputs', (req, res) =>{
   var mod = req.query.Mdl;
   var ret = readSettings(mod);
   if (ret == undefined) 
-	answ = {list:lst, error: `Cannot read synths.json in ${os.homedir()}`};
+	answ = {list:lst, error: `Cannot read .synths.json in ${os.homedir()}`};
   else
 	answ = {list: lst, settings: ret};
   res.end(JSON.stringify(answ));
