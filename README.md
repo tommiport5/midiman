@@ -14,11 +14,12 @@ Follow the installation steps below and start the main module mm.js.
 ##INSTALLATION
 
 1. Install node.js version 12(http://nodejs.org) and the npm package manager on your computer, if you don't have it yet.
-1. Edit the configuration file **.synths.json.sample** to reflect you MIDI setup and store it as **.synth.json** in your home directory.
-1. Run 'node mm.js'
+1. Install midiman with npm.
+1. Edit the configuration file **synths.json.sample** to reflect you MIDI setup and store it as **.synth.json** (note the leading ".") in your home directory.
+1. Run 'node midiman'
 
 ##USAGE
-'mm.js' will fire up your preferred browser shows each of your synths from the configuration file **.synths.json** as a link.
+'midiman' will fire up your preferred browser shows each of your synths from the configuration file **.synths.json** as a link.
 Clicking this link will open a new tab with two boxes _Synth_ and _File_.
 The _Synth_ box contains the Midi settings from your configuration file. It is used to transfer the patches from and two the synthesizer.
 The _File_ box contains patches from files on your computer.

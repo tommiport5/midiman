@@ -1,14 +1,14 @@
 {
   "name": "midiman",
-  "homepage": "https://github.com/tommiport5/MidiMan/#readme",
+  "homepage": "https://github.com/tommiport5/MidiMan#readme",
   "version": "0.8.0",
   "description": "Manager for synthesizer sounds that are transmitted via MIDI sysex",
   "license": "BSD-3-Clause",
   "author": "Thomas Heckmann <tommi.port5@gmail.com> (https://port5.de)",
   "main": "mm.js",
   "engines": {
-    "node": "~12.16",
-    "ECMAScript": "6"
+    "node": "~12",
+    "npm": "~6"
   },
   "dependencies": {
     "Base64": "^1.1.0",
@@ -25,7 +25,7 @@
   },
   "devDependencies": {},
   "scripts": {
-    "test": "echo \"To be tested interactively with the prerferred browser and the implemented synthesizers connected.\""
+    "test": "echo \"Test interactively according the checklist.pdf with your preferred browser and the implemented synthesizers connected.\""
   },
   "repository": {
     "type": "git",
@@ -38,5 +38,11 @@
   ],
   "bugs": {
     "url": "https://github.com/tommiport5/MidiMan/issues"
-  }
+  },
+  "files": [
+	"!Addendum Virus B Series German.pdf",
+	"!ganz_anderes_package.json",
+	"!Manual_Virus_C_English_Web",
+	"!Test Checklist"
+	]
 }
