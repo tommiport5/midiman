@@ -1,0 +1,42 @@
+{
+  "name": "midiman",
+  "homepage": "https://github.com/tommiport5/MidiMan/#readme",
+  "version": "0.8.0",
+  "description": "Manager for synthesizer sounds that are transmitted via MIDI sysex",
+  "license": "BSD-3-Clause",
+  "author": "Thomas Heckmann <tommi.port5@gmail.com> (https://port5.de)",
+  "main": "mm.js",
+  "engines": {
+    "node": "~12.16",
+    "ECMAScript": "6"
+  },
+  "dependencies": {
+    "Base64": "^1.1.0",
+    "child_process": "^1.0.2",
+    "express": "^4.17.1",
+    "finalhandler": "^1.1.2",
+    "fs": "0.0.1-security",
+    "http": "0.0.1-security",
+    "os": "^0.1.1",
+    "path": "^0.12.7",
+    "performance-now": "^2.1.0",
+    "web-midi-api": "^2.0.8",
+    "webmidi": "^2.5.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"To be tested interactively with the prerferred browser and the implemented synthesizers connected.\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tommiport5/MidiMan.git"
+  },
+  "keywords": [
+    "MIDI",
+    "sysex",
+    "sounds"
+  ],
+  "bugs": {
+    "url": "https://github.com/tommiport5/MidiMan/issues"
+  }
+}

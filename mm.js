@@ -8,13 +8,13 @@ global.navigator = require('web-midi-api');
 if (!global.performance) global.performance = { now: require('performance-now') };
 var WebMidi = new require('webmidi');
 
-var Roland = require('./roland.js');
-var Access = require('./access.js');
-var Patch = require('./rolandPatch.js');
+var Roland = require('./process/roland.js');
+var Access = require('./process/access.js');
+var Patch = require('./process/rolandPatch.js');
 
 const hostname = 'localhost';
 const port = 10532;
-const src_dir = 'file:///C:/Users/Dad/Documents/MidiMan';
+const src_dir = 'file://' + __dirname + '/';
 
 const Express       = require('express');
 var app = Express();
@@ -362,6 +362,10 @@ app.get('/outputs', (req, res) =>{
 app.get ('/*', function(req,res) {
 	if (fs.existsSync(new URL(src_dir + req.url))) {
 		deliver(src_dir + req.url, res);
+	} else if (fs.existsSync(new URL(src_dir + "ui" + req.url))) {
+		deliver(src_dir + "ui" + req.url, res);
+	} else if (fs.existsSync(new URL(src_dir + "process" + req.url))) {
+		deliver(src_dir + "process" + req.url, res);
 	} else {
 		console.log(req.url + ' not found');
 		res.statusCode = 404;
