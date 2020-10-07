@@ -1,0 +1,4 @@
+[
+{"name": "Roland D50", "class": "Roland", "image": "d50.png", "MidiIn": "USB MIDI Interface", "MidiOut": "USB MIDI Interface", "MidiChan": 7},
+{"name": "access virus b", "class": "Access", "image": "virus.jpg", "MidiIn": "MIDI 1 x 1", "MidiOut": "MIDI 1 x 1", "MidiChan": 5}
+]
