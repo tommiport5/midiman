@@ -1,6 +1,6 @@
 {
   "name": "midiman",
-  "homepage": "https://github.com/tommiport5/MidiMan#readme",
+  "homepage": "https://github.com/tommiport5/midiman#readme",
   "version": "0.8.0",
   "description": "Manager for synthesizer sounds that are transmitted via MIDI sysex",
   "license": "BSD-3-Clause",
@@ -28,7 +28,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tommiport5/MidiMan.git"
+    "url": "git+https://github.com/tommiport5/midiman.git"
   },
   "keywords": [
     "MIDI",
@@ -36,7 +36,7 @@
     "sounds"
   ],
   "bugs": {
-    "url": "https://github.com/tommiport5/MidiMan/issues"
+    "url": "https://github.com/tommiport5/midiman/issues"
   },
   "files": [
 	"images/*",
