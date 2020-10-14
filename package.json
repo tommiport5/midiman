@@ -7,8 +7,7 @@
   "author": "Thomas Heckmann <tommi.port5@gmail.com> (https://port5.de)",
   "main": "mm.js",
   "engines": {
-    "node": "~12",
-    "npm": "~6"
+    "node": "~12"
   },
   "dependencies": {
     "Base64": "^1.1.0",
@@ -40,9 +39,9 @@
     "url": "https://github.com/tommiport5/MidiMan/issues"
   },
   "files": [
-	"!Addendum Virus B Series German.pdf",
-	"!ganz_anderes_package.json",
-	"!Manual_Virus_C_English_Web",
-	"!Test Checklist"
-	]
+	"images/*",
+	"proc/*",
+	"Synths/*",
+	"ui/*"
+ ]
 }
