@@ -179,7 +179,7 @@ class Navi {
 		var sv;
 		var num;
 		switch (tg.charAt(0)) {
-			case "C":
+			case "c":
 				return "c";
 			case "S":
 				sv = "s" + SynthPatches.curpage.substr(1,1);
@@ -320,7 +320,7 @@ function writeCurrentPatch() {
 		if (data.error)
 			document.getElementById("Result").innerText = data.error;
 		else
-			document.getElementById("C").innerText = data.patch;
+			document.getElementById("c").innerText = data.patch;
 	});
 }
 	
@@ -386,7 +386,10 @@ function dragStart(ev) {
 
 function drop(ev) {
 	ev.preventDefault();
-	if (!ev.dataTransfer) return;
+	if (!ev.dataTransfer) {
+		document.getElementById("Result").innerText = `drop with no source from ${ev}` ;
+		return;
+	}
 	let src_id = ev.dataTransfer.getData("id");
 	let src_txt = ev.dataTransfer.getData("text");
 	let dest_id = ev.target.id;

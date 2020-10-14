@@ -8,15 +8,15 @@ global.navigator = require('web-midi-api');
 if (!global.performance) global.performance = { now: require('performance-now') };
 var WebMidi = new require('webmidi');
 
-var Roland = require('./process/roland.js');
-var Access = require('./process/access.js');
-var Patch = require('./process/rolandPatch.js');
+var Roland = require(__dirname + '/proc/roland.js');
+var Access = require(__dirname + '/proc/access.js');
+var Patch = require(__dirname + '/proc/rolandpatch.js');
 
 const hostname = 'localhost';
 const port = 10532;
 const src_dir = 'file://' + __dirname + '/';
 
-const Express       = require('express');
+const Express = require('express');
 var app = Express();
 app.use(Express.json());
 app.use(Express.urlencoded({extended:true}));
@@ -346,6 +346,7 @@ app.get('/inputs', (req, res) =>{
  
 app.get('/outputs', (req, res) =>{
   var lst = [];
+  var answ;
   res.setHeader('Content-Type', 'text/json; charset=utf-8');
   WebMidi.outputs.forEach((ot) => {
 	  lst.push(ot.name);
@@ -372,22 +373,32 @@ app.get ('/*', function(req,res) {
 		res.statusMessage = 'Not Found';
 		res.end();
 	}
-  });
+});
   
-WebMidi.enable((err) =>{
-	if (err) {
-		console.log("webmidi enable failed with $err");
-	 	server.close();
-	}
+WebMidi.enable(function(err) {
+		if (err) {
+				console.log(`webmidi enable failed with ${err}`);
+				server.close();
+		}else {
+                    console.log("WebMidi enabled!");
+                }
 }, true);
 
 
-const browser = spawn('cmd.exe', ['"/c start /max http://' + hostname + ':' + port + '/index.html"']);
+if (os.type().includes("indows")) {
+    const browser = spawn('cmd.exe', ['"/c start /max http://' + hostname + ':' + port + '/index.html"']);
+    browser.on('exit', (code) => {
+            console.log(`browser child exited with code ${code}`);
+    });
+} else {
+    const browser = spawn('xdg-open', ['http://' + hostname + ':' + port + '/index.html']);
+    browser.on('exit', (code) => {
+            console.log(`browser child exited with code ${code}`);
+    });
+}
+
 server.listen(port, hostname);
 
-browser.on('exit', (code) => {
-	console.log(`browser child exited with code ${code}`);
-});
 
 console.log(`serving at http://${hostname}:${port}/`);
 

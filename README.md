@@ -14,7 +14,10 @@ Follow the installation steps below and start the main module mm.js.
 ##INSTALLATION
 
 1. Install node.js version 12(http://nodejs.org) and the npm package manager on your computer, if you don't have it yet.
-1. Install midiman with npm.
+1. Install midiman with npm (see https://docs.npmjs.com/cli/install).
+    Here is the shortinstruction I have been missing:
+    1. Exexcute npm init in your home directory. Give a short description (default package.json), leave all other questions to default
+    1. Execute npm install midiman
 1. Edit the configuration file **synths.json.sample** to reflect you MIDI setup and store it as **.synth.json** (note the leading ".") in your home directory.
 1. Run 'node midiman'
 
