@@ -1,3 +1,4 @@
+"use strict";
 const finalhandler = require('finalhandler');
 const http         = require('http');
 const { spawn } = require('child_process');
@@ -25,6 +26,7 @@ var server = http.createServer(function(req, res) {
   app(req, res, finalhandler(req, res));
 });
 
+var AllSettings;
 var Triggered = false;
 var MySettings = [];
 var theSynthesizers = [];
@@ -83,7 +85,7 @@ function handlePost(url, func) {
 }
  
 function deliver(path, res) {
-	req = new URL(path);
+	let req = new URL(path);
 	if (req.pathname.endsWith("html")) {
 		res.setHeader('Content-Type', 'text/html');
 	} else if (req.pathname.endsWith("js")) {
