@@ -8,7 +8,7 @@ Based on javascript, node.js and webmidi.js
 
 ## ABSTRACT
 
-This package allows you manage the sound for your synthesizer via drag'n#drop from your computer (if you happen to have a supported synthesizer).
+This package allows you manage the sound for your synthesizer via drag'n'drop from your computer (if you happen to have a supported synthesizer).
 Follow the installation steps below and start the main module mm.js. 
 
 ## INSTALLATION
@@ -33,3 +33,7 @@ You can swap the content of the boxes with the _Swap_ button between them.
 ## DEVELOPERS
 
 Contributions are welcome! Clone the project from https://github.com/tommiport5/midiman.git and add the code for your synthesizer in a new branch.
+
+## HISTORY
+1. 0.8.0 Basic functionality
+1. 0.8.1 Improvements for  access virus: Add the multipatches, display the overlapping patches 6x.
