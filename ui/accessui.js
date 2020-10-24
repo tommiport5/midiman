@@ -124,7 +124,7 @@ class Navi {
 			for (let n=0; n<ind.length; n++) {
 				ind[n].innerText = (n+6).toString() + "_";
 			}
-			startAt = 4;
+			startAt = 0;
 		}
 		for (; i<startAt;) {
 			arr[i].innerText = "";
@@ -133,9 +133,9 @@ class Navi {
 		}
 		let btab = this._patches[bank];
 		if (btab && page == 0) {
-			tabdat = btab.slice(0,64);
+			tabdat = btab.slice(0,70);
 		} else if (btab) {
-			tabdat = btab.slice(64);
+			tabdat = btab.slice(60);
 		}
 		if (tabdat) {
 			tabdat.forEach((dt) => {
