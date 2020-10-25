@@ -23,7 +23,7 @@ Follow the installation steps below and start the main module mm.js.
 
 ## USAGE
 
-**node midiman** will fire up your preferred browser shows each of your synths from the configuration file **.synths.json** as a link.
+**node midiman** will fire up your preferred browser. It shows each of your synths from the configuration file **.synths.json** as a link.
 Clicking this link will open a new tab with two boxes _Synth_ and _File_.
 The _Synth_ box contains the Midi settings from your configuration file. It is used to transfer the patches from and two the synthesizer.
 The _File_ box contains patches from files on your computer.
