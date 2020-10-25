@@ -2,10 +2,10 @@
 
 const port = 10532;
 
-const NumReadBanks = 8;
+const NumReadBanks = 9;
 const defaultBorderstyle = "outset";
 const highlightBorderstyle = "inset";
-const ButtonLabels = "ABCDEFGH";
+const ButtonLabels = "ABCDEFGHM";
 const ButtonPrefix = "SF";
 
 /**
@@ -124,7 +124,7 @@ class Navi {
 			for (let n=0; n<ind.length; n++) {
 				ind[n].innerText = (n+6).toString() + "_";
 			}
-			startAt = 4;
+			startAt = 0;
 		}
 		for (; i<startAt;) {
 			arr[i].innerText = "";
@@ -133,9 +133,9 @@ class Navi {
 		}
 		let btab = this._patches[bank];
 		if (btab && page == 0) {
-			tabdat = btab.slice(0,64);
+			tabdat = btab.slice(0,70);
 		} else if (btab) {
-			tabdat = btab.slice(64);
+			tabdat = btab.slice(60);
 		}
 		if (tabdat) {
 			tabdat.forEach((dt) => {
@@ -326,7 +326,7 @@ function writeCurrentPatch() {
 	
 function readMemoryBank(i) {
 	let Settings = {Mdl: Model, Bank: i};
-	document.getElementById("Result").innerText = `Receiving memory ${ButtonLabels[i]}`;
+	document.getElementById("Result").innerText = `Receiving synth memory ${ButtonLabels[i]}`;
 	getJsonParam('http://localhost:' + port +'/readMemory', JSON.stringify(Settings), (data) => {
 		document.getElementById("Result").innerText = data.result;
 		if (data.names) {
@@ -344,7 +344,7 @@ function readMemoryBanks() {
 
 function writeMemory() {
 	let Settings = {Mdl: Model};
-	document.getElementById("Result").innerText = 'Writing bank A and B to synth';
+	document.getElementById("Result").innerText = 'Writing bank A. B and M to synth';
 	getJsonParam('http://localhost:' + port +'/writeMemory', JSON.stringify(Settings), (data) => {
 		document.getElementById("Result").innerText = data.result;
 	});

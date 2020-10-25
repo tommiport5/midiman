@@ -1,21 +1,32 @@
+"use strict";
 /**
  * Class Access
  * manages communication with a Access Synthesizer via Sysex Messages.
- * It is a Multiton. Each instance can be identified by the triple [MidiIn, MidiOut, MidiChannel].
- * TODO: Identify the "current instance" somehow.
+ * The clipboard reads the single edit buffer from the synth
  */
  
-var Patch = require('./accesspatch');
+ // for tracing
+ var Combi = require('./sysex');
+var Sysex = Combi.as;
+
+ 
+var AccessPatchModule = require('./accesspatch');
+var Patch = AccessPatchModule.base;
+var SinglePatch = AccessPatchModule.single;
+var MultiPatch = AccessPatchModule.multi;
 const Base64 = require('Base64');
 
 var theInstances = [];
+
+// copy from accessui.js
+const ButtonLabels = "ABCDEFGHM";
 
 module.exports = class Access {
 	constructor(MIn, MOut, MChan) {
 		this.mIn = MIn;
 		this.mOut = MOut;
 		this.mChan = MChan;
-		this._clipboard = new Patch();
+		this._clipboard = new SinglePatch();
 	}
 	
 
@@ -28,7 +39,7 @@ module.exports = class Access {
 	}
 	
 	readCurrentPatch() {
-		var curpat = new Patch (this.mIn, this.mOut, this.mChan);
+		var curpat = new SinglePatch (this.mIn, this.mOut, this.mChan);
 		return new Promise((resolve,reject) => {
 			curpat.readFromSynth().then((ign) => {
 				this._clipboard = curpat;
@@ -59,7 +70,7 @@ module.exports = class Access {
 						Names.push(bk.patchname);
 				});
 				resolve(Names);
-			}).catch((err) => {
+			}).catch ((err) => {
 				reject(err);
 			});
 		});
@@ -67,12 +78,17 @@ module.exports = class Access {
 
 	writeMemoryToSynth() {
 		return new Promise((resolve, reject) => {
-			if (this.SynthPatches == undefined) return reject(new Error("No patches loaded"));
-				Patch.writeMemoryToSynth(this.SynthPatches, this.mOut, this.mChan);
-				resolve("Ok");
-			}).catch ((e) => {
-				reject(new Error(e));
-			});
+			if (this.SynthPatches == undefined) {
+				reject("No patches loaded");
+			} else {
+				try {
+					Patch.writeMemoryToSynth(this.SynthPatches, this.mOut, this.mChan);
+					resolve("Ok");
+				} catch (e) {
+					reject(e);
+				}
+			}
+		});
 	}
 	
 	readMemoryFromDataURL(postdat) {
@@ -147,6 +163,22 @@ module.exports = class Access {
 		this.SynthPatches = tmp;
 	}
 	
+	/**
+	 * _isCompatible(value, bank)
+	 * checks, if the patch value is compatible with the bank (single / multi)
+	 * and returns an error message, if not
+	 */
+	_isCompatible(value, bank) {
+		if (value instanceof SinglePatch) {
+			if (bank >= 8)
+				return "Cannot move single patch to multi bank";
+		} else {
+			if (bank < 8)
+				return "Cannot move multi patch to single bank";
+		}
+		return "Ok";
+	}
+	
 	_getOrSetVar(id, value) {
 		var bank;
 		var ind;
@@ -156,16 +188,30 @@ module.exports = class Access {
 				return this._clipboard;
 				break;
 			case 's':
-				bank = id.charCodeAt(1) - "A".charCodeAt(0);
+				bank = ButtonLabels.indexOf(id[1]);
 				ind = Number(id.substr(2));
-				if (value != undefined) this.SynthPatches[bank][ind] = value;
-				else return this.SynthPatches[bank][ind];
+				if (value != undefined) {
+					let comp = this._isCompatible(value, bank);
+					if (comp == "Ok")
+						this.SynthPatches[bank][ind] = value;
+					else 
+						throw comp;
+				} else {
+					return this.SynthPatches[bank][ind];
+				}
 				break;
 			case 'f':
-				bank = id.charCodeAt(1) - "A".charCodeAt(0);
+				bank = ButtonLabels.indexOf(id[1]);
 				ind = Number(id.substr(2));
-				if (value != undefined) this.FilePatches[bank][ind] = value;
-				else return this.FilePatches[bank][ind];
+				if (value != undefined) {
+					let comp = this._isCompatible(value, bank);
+					if (comp == "Ok")
+						this.FilePatches[bank][ind] = value;
+					else 
+						throw comp;
+				} else {
+					return this.FilePatches[bank][ind];
+				}
 				break;
 		}
 	}
@@ -173,8 +219,12 @@ module.exports = class Access {
 	move(from, to) {
 		if ((from[0] == 's' || to[0] == 's') && this.SynthPatches == undefined) return "SynthPatches undefined!";
 		if ((from[0] == 'f' || to[0] == 'f') && this.FilePatches == undefined) return "FilePatches undefined!";
+		try {
 		this._getOrSetVar(to, this._getOrSetVar(from));
-		return "Ok";
+			return "Ok";
+		} catch (e) {
+			return e.toString();
+		}
 	}
 }
 

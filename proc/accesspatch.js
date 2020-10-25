@@ -1,9 +1,12 @@
+"use strict";
 /**
  * Class AccessPatch
  * manages patches on an access virus
- * A single patch consists of 4 buffers A to D
+ * A single patch consists of 2 pages __A and __B
+ * A multi patch consists of one buffer __C.
  */
  
+// For tracing
 var Combi = require('./sysex');
 var Sysex = Combi.as;
 
@@ -14,7 +17,7 @@ const _MBR = 0x33;
 const _SID = 0x10;
 const _MUD = 0x11;
 
-const NumWriteBanks = 2;	// only bank A and B storable
+const WriteBanks = [1,2];
 
 function delay(ms) {
 	return new Promise((resolve) => {
@@ -24,7 +27,7 @@ function delay(ms) {
 	});
 }
 
-module.exports = class AccessPatch {
+class AccessPatch {
 	constructor(MIn, MOut, MChan) {
 		this.mIn = MIn;
 		this.mOut = MOut;
@@ -36,21 +39,9 @@ module.exports = class AccessPatch {
 		return this._complete;
 	}
 	
-
-	get patchname() {
-		var res = "";
-		if (this.__B == undefined) {
-			res = "<undefined>";
-		} else {
-			this.__B.slice(111,122).reduce((total, val) => {res += String.fromCharCode(val);});
-			if (!this._complete) res += " <incomplete>";
-		}
-		return res;
-	}
-	
 	/**
 	 * readFromSynth
-	 * reads the current edit patch into this object
+	 * reads the current (single) edit patch into this object
 	 */
 	readFromSynth() {
 		return new Promise((resolve,reject) => {
@@ -62,12 +53,7 @@ module.exports = class AccessPatch {
 				console.log("sending >>" + rd.asSendData() + "<<");
 				rd.send(this.mOut);
 				Ret.then((sx) => {
-					let add = sx.raw.slice(0,2);
-					let sxd = sx.raw.slice(2);
-					console.log("received " + sxd.length + " byte for bank " + add[0]);
-					this.__A = sxd.slice(0,128);
-					this.__B = sxd.slice(128,256);
-					this._complete = true;
+					this.fillFromSysex(sx);
 					resolve("ok");
 				}).catch ((e) =>{
 					console.log("readFromSynth: " + e);
@@ -85,15 +71,15 @@ module.exports = class AccessPatch {
 	 * writes this patch into the current edit patch on the synth
 	 */
 	writeToSynth(mOut, mChan) {
+		this.mOut = mOut;
+		this.mChan = mChan;		// override the stored values
 		// Sysex.trace = true;
 		if (!this._complete) {
 			return Promise.reject("no patch");
 		}
 		try {
-			var dump = new Sysex(mChan, _SID);
-			dump.append([0,0x40]);
-			dump.append(this.__A);
-			dump.append(this.__B);
+			var dump = this.buildSysex(0, 0x40);	//the program number is ignored for the multi request, 
+													// so this works for multi and single
 			dump.send(mOut);
 			return Promise.resolve("ok");
 		} catch(e) {
@@ -110,25 +96,29 @@ module.exports = class AccessPatch {
 	 */
 	static async readMemoryBankFromSynth(mIn, mOut, mChan, bank) {
 		try {
+			var brq;
 			var resp;
 			var ds = new Sysex();
 			var Result = new Array(128);
-			// Sysex.trace = true;
-			let sbr = new Sysex(mChan, _SBR);
-			sbr.append([bank+1]);
-			sbr.send(mOut);
+			if (bank < 8) {
+				brq = new Sysex(mChan, _SBR);
+				brq.append([bank+1]);
+			} else {
+				// Bank8 is the multi bank
+				brq = new Sysex(mChan, _MBR);
+				brq.append([1]);
+			}
+			brq.send(mOut);
 			for (let prog = 0; prog < 128; prog++) {
 				let Ret = ds.listen(mIn);
-				Result[prog] = new AccessPatch();
 				let sx = await Ret;
 				resp = sx.command;
 				if (resp == _SID) {
-					let add = sx.raw.slice(0,2);
-					let sxd = sx.raw.slice(2);
-					Result[prog].__A = sxd.slice(0,128);
-					Result[prog].__B = sxd.slice(128);
-					Result[ prog]._complete = true;
+					Result[prog] = new AccessSinglePatch();
+				} else if (resp == _MUD) {
+					Result[prog] = new AccessMultiPatch();
 				}
+				Result[prog].fillFromSysex(sx);
 			}
 			await delay(1000);
 			return Result;
@@ -146,12 +136,17 @@ module.exports = class AccessPatch {
 		som = 1;
 		while (som < fbuf.length) {
 			let bank = [];
+			let patch;
 			for (let i=0; i<128; i++) {
-				let patch = new AccessPatch();
 				eom = fbuf.indexOf(0xf7, som);
-				patch.__A = fbuf.slice(som+8,som+136);	//3 id. 1 prod, 1 dev, 1 cmd, 1 bnum, 1 pnum
-				patch.__B = fbuf.slice(som+136, eom);
-				patch._complete = true;
+				if (fbuf[som+5] == _SID) { //3 id, 1 prod, 1 dev, 1 cmd, 1 bnum, 1 pnum
+					patch = new AccessSinglePatch();
+				} else if (fbuf[som+5] == _MUD) {
+					patch = new AccessMultiPatch();
+				} else {
+					throw `Cmd not ${_SID} or ${_MUD}`;
+				}
+				patch.fillFromBlob(fbuf, som, eom);
 				bank.push(patch);
 				som = eom+2;
 				if (som >= fbuf.length) break;	//preemptive termination is ok
@@ -177,10 +172,7 @@ module.exports = class AccessPatch {
 		datarr.forEach((bank) => {
 			let pnum = 0;
 			bank.forEach((pt)=> {
-				let pts = new Sysex(0, _SID);
-				pts.append([bnum, pnum]);
-				pts.append(pt.__A);
-				pts.append(pt.__B);
+				let pts = pt.buildSysex(bnum, pnum);
 				dat = dat.concat(pts.asBlob());
 				pnum++;
 			});
@@ -190,11 +182,8 @@ module.exports = class AccessPatch {
 	}
 	
 	static writePatchToBlob(pat) {
-		let pts = new Sysex(0, _SID);
-		pts.append([0, 0]);
-		pts.append(pat.__A);
-		pts.append(pat.__B);
-		var dat = pts.asBlob();
+		let pts = pat.buildSysex();
+		let dat = pts.asBlob();
 		return Buffer.from(Uint8Array.from(dat));
 	}
 	
@@ -203,20 +192,104 @@ module.exports = class AccessPatch {
 	 * writes all the banks in Mem to the Synth.
 	 */
 	static writeMemoryToSynth(Mem, mOut, mChan) {
-		var dat = [];
-		for (let bank=1; bank <= NumWriteBanks; bank++) {
+		for (let bank of WriteBanks) {
 			let pnum = 0;
 			Mem[bank-1].forEach((pt)=> {
-				let pts = new Sysex(mChan, _SID);
-				pts.append([bank, pnum]);
-				pts.append(pt.__A);
-				pts.append(pt.__B);
+				pt.mOut = mOut;
+				pt.mChan = mChan;		// override the stored values
+				let pts = pt.buildSysex(bank, pnum);
 				pts.send(mOut);
 				pnum++;
 			});
 		}
+		let pnum = 0;
+		Mem[8].forEach((pt)=> {
+			pt.mOut = mOut;
+			pt.mChan = mChan;		// override the stored values
+			let pts = pt.buildSysex(1, pnum);
+			pts.send(mOut);
+			pnum++;
+		});
 	}
 }
+
+class AccessSinglePatch extends AccessPatch {
+	constructor (MIn, MOut, MChan) {
+		super(MIn, MOut, MChan);
+	}
+	get patchname() {
+		var res = "";
+		if (this.__B == undefined) {
+			res = "<undefined>";
+		} else {
+			this.__B.slice(111,122).reduce((total, val) => {res += String.fromCharCode(val);});
+			if (!this._complete) res += " <incomplete>";
+		}
+		return res;
+	}
+	
+	fillFromSysex(sx) {
+		let add = sx.raw.slice(0,2);
+		let sxd = sx.raw.slice(2);
+		this.__A = sxd.slice(0,128);
+		this.__B = sxd.slice(128);
+		this._complete = true;
+	}
+	
+	fillFromBlob(fbuf, som, eom) {
+		this.__A = fbuf.slice(som+8,som+136);	
+		this.__B = fbuf.slice(som+136, eom);
+		this._complete = true;
+	}
+
+	buildSysex(bnum, pnum) {
+		let pts = new Sysex(this.mChan, _SID);
+		if (!bnum)
+			pts.append([0,0x40]);
+		else
+			pts.append([bnum, pnum]);
+		pts.append(this.__A);
+		pts.append(this.__B);
+		return pts;
+	}
+}
+
+class AccessMultiPatch extends AccessPatch {
+	constructor (MIn, MOut, MChan) {
+		super(MIn, MOut, MChan);
+	}
+	get patchname() {
+		var res = "";
+		this.__C.slice(3,14).reduce((total, val) => {res += String.fromCharCode(val);});
+		return res;
+	}
+	
+	fillFromSysex(sx) {
+		let add = sx.raw.slice(0,2);
+		let sxd = sx.raw.slice(2);
+		this.__C = sxd;
+		this._complete = true;
+	}
+	
+	fillFromBlob(fbuf, som, eom) {
+		this.__C = fbuf.slice(som+8, eom);
+		this._complete = true;
+	}
+	
+	buildSysex(bnum, pnum) {
+		let pts = new Sysex(this.mChan, _MUD);
+		if (!bnum)
+			pts.append([0,0]);
+		else
+			pts.append([bnum, pnum]);
+		pts.append(this.__C);
+		return pts;
+	}
+}
+
+exports.base = AccessPatch;
+exports.single = AccessSinglePatch;
+exports.multi = AccessMultiPatch;
 		
 
 
