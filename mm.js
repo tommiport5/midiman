@@ -11,7 +11,7 @@ var WebMidi = new require('webmidi');
 
 var Roland = require(__dirname + '/proc/roland.js');
 var Access = require(__dirname + '/proc/access.js');
-var Patch = require(__dirname + '/proc/rolandpatch.js');
+var Korg = require(__dirname + '/proc/korg.js');
 
 const hostname = 'localhost';
 const port = 10532;
@@ -30,7 +30,7 @@ var AllSettings;
 var Triggered = false;
 var MySettings = [];
 var theSynthesizers = [];
-const SynthClasses = {"Roland":Roland, "Access":Access};
+const SynthClasses = {"Roland":Roland, "Access":Access, "Korg": Korg};
 
 function readSettings(model) {
 	try {
@@ -194,32 +194,6 @@ handlePost('/selIfc', (postdat, res) => {
 		res.setHeader("cache-control", "no-store");
 		res.end('{"result":"' + Msg + '"}');
 	} catch(e) {	
-		res.setHeader('Content-Type', 'text/json; charset=utf-8');
-		res.setHeader("cache-control", "no-store");
-		res.end('{"result":"' + e + '"}');
-	}	
-});
-
-//TODO: if this is still necessary, route thru the synth		
-handlePost('/read', (postdat, res) => {
-	let mIn = WebMidi.getInputByName(postdat.MidiIn);
-	let mOut = WebMidi.getOutputByName(postdat.MidiOut);
-	let mChan = postdat.MidiChan-1;
-	var patch = new Patch(mIn, mOut, mChan);
-	try {	
-		patch.readFromSynth(parseInt(postdat.bank-1), parseInt(postdat.pnum-1)).then((_ign) =>{
-			let ToneNames =  patch.tonenames;
-			let Msg = 'Found D50, requested tonenames: ' + ToneNames[0] + ", " + ToneNames[1];
-			res.setHeader('Content-Type', 'text/json; charset=utf-8');
-			res.setHeader("cache-control", "no-store");
-			res.end('{"result":"' + Msg + '"}');
-		}).catch((err) =>{
-			let Msg = 'Could not read patch, ' + err;
-			res.setHeader('Content-Type', 'text/json; charset=utf-8');
-			res.setHeader("cache-control", "no-store");
-			res.end('{"result":"' + Msg + '"}');
-		});
-	} catch(e) {
 		res.setHeader('Content-Type', 'text/json; charset=utf-8');
 		res.setHeader("cache-control", "no-store");
 		res.end('{"result":"' + e + '"}');

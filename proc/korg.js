@@ -1,27 +1,27 @@
 "use strict";
 /**
- * Class Access
- * manages communication with a Access Synthesizer via Sysex Messages.
+ * Class Korg
+ * manages communication with a Korg Triton via Sysex Messages.
  * The clipboard reads the single edit buffer from the synth
  */
  
  // for tracing
- var Combi = require('./sysex');
-var Sysex = Combi.as;
+var Combi = require('./sysex');
+var Sysex = Combi.kg;
 
  
-var AccessPatchModule = require('./accesspatch');
-var Patch = AccessPatchModule.base;
-var SinglePatch = AccessPatchModule.single;
-var MultiPatch = AccessPatchModule.multi;
+var KorgPatchModule = require('./korgpatch');
+var Patch = KorgPatchModule.base;
+var SinglePatch = KorgPatchModule.single;
+var CombiPatch = KorgPatchModule.combi;
 const Base64 = require('Base64');
 
 var theInstances = [];
 
-// copy from accessui.js
+// copy from commonui.js
 const ButtonLabels = "ABCDEFGHM";
 
-module.exports = class Access {
+module.exports = class Korg {
 	constructor(MIn, MOut, MChan) {
 		this.mIn = MIn;
 		this.mOut = MOut;
@@ -141,6 +141,7 @@ module.exports = class Access {
 	 * The browser will store it there.
 	 */
 	writePatchToData() {
+		Sysex.trace = true;
 		return new Promise((resolve,reject) => {
 			if (this._clipboard == undefined) reject(new Error("Clipboard empty"));
 			try {

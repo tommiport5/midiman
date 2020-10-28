@@ -182,7 +182,7 @@ class AccessSysex extends Sysex {
 			if (exp != this.rawData.reduce(function(total,val) {
 					return total + val;
 				}, cs)) {
-					var msg = `Checksum mismatch, received ${exp} insraed of ${cs}`;
+					var msg = `Checksum mismatch, received ${exp} instead of ${cs}`;
 					console.log(msg);
 					throw msg;
 				}
@@ -199,5 +199,24 @@ class AccessSysex extends Sysex {
 	}
 }
 
-module.exports = {rs:RolandSysex, as:AccessSysex};
+class KorgSysex extends Sysex {
+	constructor(chan, cmd) {
+		super([0x42], 0x30 | chan, 0x50, cmd);
+	}
+	_buildTelegram() {
+		return [this._brand, [this._channel, this._model, this._command].concat(this.rawData)];
+	}
+	_parseTelegram() {
+		var cs;
+		this.rawData.shift();				// 0xf0
+		this._brand = this.rawData.shift();
+		this._channel = this.rawData.shift() & 0xf;
+		this._model = this.rawData.shift();
+		this._command = this.rawData.shift();
+		this.rawData.pop();					// 0xf7
+	}
+	
+}
+
+module.exports = {rs:RolandSysex, as:AccessSysex, kg: KorgSysex};
 

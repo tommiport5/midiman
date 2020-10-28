@@ -95,20 +95,6 @@ function readCurrentPatch() {
 	});
 }
 
-/*
-function readPatchByNumber() {
-	var Settings = {MidiIn:document.getElementById("MidiIn").value,
-					MidiOut:document.getElementById("MidiOut").value,
-					MidiChan:document.getElementById("MidiChan").value,
-					bank:document.getElementById("bank").value,
-					pnum:document.getElementById("patch").value,
-					};
-	getJsonParam('http://localhost:' + port +'/read', JSON.stringify(Settings), (data) => {
-		document.getElementById("Result").innerText = data.result;
-	});
-}
-*/
-	
 	
 function readMemory() {
 	let Settings = {Mdl: Model};
@@ -266,7 +252,7 @@ function displayForm() {
 		}
 	});
 	document.getElementById("readPatch").addEventListener('click',readCurrentPatch);
-	document.getElementById("selInterface").addEventListener('click',selectInterface);
+	//document.getElementById("selInterface").addEventListener('click',selectInterface);
 	//document.getElementById("writepatch").addEventListener('click',);
 	document.getElementById("readMem").addEventListener('click',readMemory);
 	document.getElementById("writeMem").addEventListener('click',writeMemory);
