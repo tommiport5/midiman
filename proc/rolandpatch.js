@@ -98,7 +98,7 @@ module.exports = class RolandPatch {
 	
 	/**
 	 *readFromSynth
-	 * reads one patch into this object
+	 * reads the current patch into this object
 	 */
 	readFromSynth() {
 		var This = this;
@@ -109,13 +109,11 @@ module.exports = class RolandPatch {
 				var Ret = ds.listen(This.mIn);
 				rd.append([0,0,0]);
 				rd.append(RolandPatch.num2threebyte(256));
-				console.log("sending >>" + rd.asSendData() + "<<");
 				rd.send(This.mOut);
 				Ret.then((sx) => {
 					//if (sx.command == _RJC) throw "rejected";
 					let add = sx.raw.slice(0,3);
 					let sxd = sx.raw.slice(3);
-					console.log("received " + sxd.length + " byte for address " + add);
 					This.up1 = sxd.slice(0,64);
 					This.up2 = sxd.slice(64,128);
 					This.upc = sxd.slice(128,192);
@@ -128,10 +126,8 @@ module.exports = class RolandPatch {
 					return Ret;
 				}).then((sx) =>{
 					//if (sx.command == _RJC) throw "rejected";
-					console.log("received command: " + sx.command);
 					let add = sx.raw.slice(0,3);
 					let sxd = sx.raw.slice(3);
-					console.log("received " + sxd.length + " byte for address " + add);
 					This.lp2 = sxd.slice(0,64);
 					This.lpc = sxd.slice(64,128);
 					This.pd = sxd.slice(128);

@@ -10,9 +10,10 @@
 var Combi = require('./sysex');
 var Sysex = Combi.kg;
 
+const _MR = 0x12;
 const _CPPDR = 0x10;
-const _MUR = 0x31;
-const _SBR = 0x32;
+const _PPDR = 0x1C;
+const _NOPP = 0x6e;
 const _MBR = 0x33;
 const _CPPD = 0x40;
 const _MUD = 0x11;
@@ -39,6 +40,40 @@ class KorgPatch {
 		return this._complete;
 	}
 	
+	_convertMidi2Int(midi) {
+		let intern = [];
+		for (let i=0; i< midi.length; i+=8) {
+			let carry = midi[i];
+			let scan = 1;
+			for (let j=1; j<8; j++) {
+				if (i+j>=midi.length) break;
+				if (scan&carry)
+					intern.push(midi[i+j] | 0x80);
+				else
+					intern.push(midi[i+j]);
+				scan = scan<<1;
+			}
+		}
+		return intern;
+	}
+	
+	static _handleResponse(Ret, mIn, func) {
+		Ret.then((sx) => {
+			if (sx.command == _NOPP) {
+				let nds = new Sysex();
+				let nRet = nds.listen(mIn);
+				KorgPatch._handleResponse(nRet, mIn, func);
+			} else {
+				func(sx);
+			}
+		}).catch((e) => {
+			console.log("readFromSynth: " + e);
+			throw e;
+		});
+	}
+			
+		
+	
 	/**
 	 * readFromSynth
 	 * reads the current (single) edit patch into this object
@@ -52,15 +87,10 @@ class KorgPatch {
 				var Ret = ds.listen(this.mIn);
 				rd.append([0]);
 				rd.send(this.mOut);
-				Ret.then((sx) => {
-					// don't use fillFromSysex, because the current patch doesn't contain a patch number
-					sx.raw.shift();
-					this._sd = sx.raw;
+				KorgPatch._handleResponse(Ret, this.mIn, (sx) => {
+					this.fillFromSysex(sx);
 					resolve("ok");
-				}).catch ((e) =>{
-					console.log("readFromSynth: " + e);
-					reject(e);
-				});
+				});				
 			} catch(e) {
 				console.log('exception occured in read from synth: ' + e);
 				reject(e);
@@ -95,6 +125,8 @@ class KorgPatch {
 	 * readMemory
 	 * reads the internal memory and returns an array of KorgPatch objects
 	 * cannot read all banks in one go, because the browser gets unpatient :-(
+	 *
+	 * This should be part of some factory class.
 	 */
 	static async readMemoryBankFromSynth(mIn, mOut, mChan, bank) {
 		try {
@@ -221,20 +253,20 @@ class KorgSinglePatch extends KorgPatch {
 	}
 	get patchname() {
 		var res = "";
-		if (this.__B == undefined) {
+		if (this.__sd == undefined) {
 			res = "<undefined>";
 		} else {
-			this.__B.slice(111,122).reduce((total, val) => {res += String.fromCharCode(val);});
+			this.__sd.slice(0,16).forEach((val) => {
+					res += String.fromCharCode(val);
+				});
 			if (!this._complete) res += " <incomplete>";
 		}
 		return res;
 	}
 	
 	fillFromSysex(sx) {
-		let add = sx.raw.slice(0,2);
-		let sxd = sx.raw.slice(2);
-		this.__A = sxd.slice(0,128);
-		this.__B = sxd.slice(128);
+		if (sx.raw.shift()) console.log("Got MOSS patch instead of PCM patch");
+		this.__sd = this._convertMidi2Int(sx.raw);
 		this._complete = true;
 	}
 	

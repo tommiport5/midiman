@@ -203,6 +203,18 @@ class KorgSysex extends Sysex {
 	constructor(chan, cmd) {
 		super([0x42], 0x30 | chan, 0x50, cmd);
 	}
+	
+	/**
+	 * makeInquiry
+	 * must write strange values into properties, so that _buildTelegram builds an induiry message
+	 */
+	makeInquiry() {
+		this._brand = [0x7e];
+		this._channel = 0x7f;
+		this._model = 6;
+		this._command = 1;
+	}
+	
 	_buildTelegram() {
 		return [this._brand, [this._channel, this._model, this._command].concat(this.rawData)];
 	}

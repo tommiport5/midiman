@@ -50,7 +50,6 @@ class AccessPatch {
 				var ds = new Sysex();
 				var Ret = ds.listen(this.mIn);
 				rd.append([0,0x40]);
-				console.log("sending >>" + rd.asSendData() + "<<");
 				rd.send(this.mOut);
 				Ret.then((sx) => {
 					this.fillFromSysex(sx);
@@ -222,7 +221,7 @@ class AccessSinglePatch extends AccessPatch {
 		if (this.__B == undefined) {
 			res = "<undefined>";
 		} else {
-			this.__B.slice(111,122).reduce((total, val) => {res += String.fromCharCode(val);});
+			this.__B.slice(112,122).forEach((val) => {res += String.fromCharCode(val);});
 			if (!this._complete) res += " <incomplete>";
 		}
 		return res;
