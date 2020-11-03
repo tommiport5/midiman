@@ -12,10 +12,13 @@ var Sysex = Combi.kg;
 
 const _MR = 0x12;
 const _CPPDR = 0x10;
+const _CPPD = 0x40;
 const _PPDR = 0x1C;
+const _PPD = 0x4C;
+const _CPDR = 0x1D;
+const _CPD = 0x4D;
 const _NOPP = 0x6e;
 const _MBR = 0x33;
-const _CPPD = 0x40;
 const _MUD = 0x11;
 
 const WriteBanks = [1,2];
@@ -57,18 +60,20 @@ class KorgPatch {
 		return intern;
 	}
 	
-	static _handleResponse(Ret, mIn, func) {
-		Ret.then((sx) => {
-			if (sx.command == _NOPP) {
-				let nds = new Sysex();
-				let nRet = nds.listen(mIn);
-				KorgPatch._handleResponse(nRet, mIn, func);
-			} else {
-				func(sx);
-			}
-		}).catch((e) => {
-			console.log("readFromSynth: " + e);
-			throw e;
+	static _handleResponse(Ret, mIn) {
+		return new Promise((resolve,reject) => {
+			Ret.then((sx) => {
+				if (sx.command == _NOPP) {
+					let nds = new Sysex();
+					let nRet = nds.listen(mIn, 60000);
+					resolve(KorgPatch._handleResponse(nRet, mIn));
+				} else {
+					resolve(sx);
+				}
+			}).catch((e) =>{
+				console.log('exception occured in _handleResponse: ' + e);
+				reject(e);
+			});
 		});
 	}
 			
@@ -81,20 +86,19 @@ class KorgPatch {
 	readFromSynth() {
 		Sysex.trace = true;
 		return new Promise((resolve,reject) => {
-			try {
-				var rd = new Sysex(this.mChan, _CPPDR);
-				var ds = new Sysex();
-				var Ret = ds.listen(this.mIn);
-				rd.append([0]);
-				rd.send(this.mOut);
-				KorgPatch._handleResponse(Ret, this.mIn, (sx) => {
-					this.fillFromSysex(sx);
-					resolve("ok");
-				});				
-			} catch(e) {
+			var rd = new Sysex(this.mChan, _CPPDR);
+			var ds = new Sysex();
+			var Ret = ds.listen(this.mIn);
+			rd.append([0]);
+			rd.send(this.mOut);
+			KorgPatch._handleResponse(Ret, this.mIn).then((sx) => {
+				if (sx.raw.shift()) console.log("Got MOSS patch instead of PCM patch");
+				this.fillFromSysex(sx.raw);
+				resolve("ok");
+			}).catch((e) =>{
 				console.log('exception occured in read from synth: ' + e);
 				reject(e);
-			}
+			});
 		});
 	}
 	
@@ -120,7 +124,37 @@ class KorgPatch {
 		}
 	}
 				
-
+	static _readNextPatch(Result, mIn, mOut, mChan, bank, prog) {
+		return new Promise((resolve,reject) => {
+			let brq;
+			let ds = new Sysex();
+			let Ret = ds.listen(mIn);
+			if (bank < 8) {
+				brq = new Sysex(mChan, _PPDR);
+				brq.append([0x20 | bank, prog, 0]); 
+			} else {
+				// will not yet be used
+				brq = new Sysex(mChan, _CPDR);
+				brq.append([0x30 | bank, prog, 0]);
+			}
+			brq.send(mOut);
+			KorgPatch._handleResponse(Ret, mIn).then((sx) => {
+				let resp = sx.command;
+				if (resp == _PPD) {
+					Result[prog] = new KorgSinglePatch();
+				} else if (resp == _CPD) {
+					Result[prog] = new KorgMultiPatch();
+				}
+				Result[prog].fillFromSysex(sx.raw.slice(3));
+				if (prog < 127) return KorgPatch._readNextPatch(Result, mIn, mOut, mChan, bank, prog+1);
+				else resolve();
+			}).catch ((e) =>{
+				console.log('exception occured in _readNextPatch: ' + e);
+				reject(e);
+			});
+		});
+	}
+	
 	/**
 	 * readMemory
 	 * reads the internal memory and returns an array of KorgPatch objects
@@ -128,38 +162,18 @@ class KorgPatch {
 	 *
 	 * This should be part of some factory class.
 	 */
-	static async readMemoryBankFromSynth(mIn, mOut, mChan, bank) {
-		try {
-			var brq;
-			var resp;
-			var ds = new Sysex();
-			var Result = new Array(128);
-			if (bank < 8) {
-				brq = new Sysex(mChan, _SBR);
-				brq.append([bank+1]);
-			} else {
-				// Bank8 is the multi bank
-				brq = new Sysex(mChan, _MBR);
-				brq.append([1]);
-			}
-			brq.send(mOut);
-			for (let prog = 0; prog < 128; prog++) {
-				let Ret = ds.listen(mIn);
-				let sx = await Ret;
-				resp = sx.command;
-				if (resp == _SID) {
-					Result[prog] = new KorgSinglePatch();
-				} else if (resp == _MUD) {
-					Result[prog] = new KorgMultiPatch();
-				}
-				Result[prog].fillFromSysex(sx);
-			}
-			await delay(1000);
-			return Result;
-		} catch(e) {
-			console.log('exception occured in readMemory: ' + e);
-			throw e;
-		}			
+	static readMemoryBankFromSynth(mIn, mOut, mChan, bank) {
+		Sysex.trace = true;
+		return new Promise((resolve,reject) => {
+				var Result = new Array(128);
+				// don't loop, recurse!
+				KorgPatch._readNextPatch(Result, mIn, mOut, mChan, bank, 0).then(function() {
+					resolve(Result);
+			}).catch ((e) =>{
+				console.log('exception occured in readMemory: ' + e);
+				reject(e);
+			});
+		});
 	}
 
 	static readMemoryFromBlob(fbuf) {
@@ -265,8 +279,7 @@ class KorgSinglePatch extends KorgPatch {
 	}
 	
 	fillFromSysex(sx) {
-		if (sx.raw.shift()) console.log("Got MOSS patch instead of PCM patch");
-		this.__sd = this._convertMidi2Int(sx.raw);
+		this.__sd = this._convertMidi2Int(sx);
 		this._complete = true;
 	}
 	

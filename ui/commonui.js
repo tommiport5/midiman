@@ -2,7 +2,6 @@
 
 const port = 10532;
 
-const NumReadBanks = 9;
 const defaultBorderstyle = "outset";
 const highlightBorderstyle = "inset";
 const ButtonLabels = "ABCDEFGHM";
