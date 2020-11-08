@@ -31,6 +31,40 @@ function delay(ms) {
 	});
 }
 
+function _convertMidi2Int(midi) {
+	let intern = [];
+	for (let i=0; i< midi.length; i+=8) {
+		let carry = midi[i];
+		let scan = 1;
+		for (let j=1; j<8; j++) {
+			if (i+j>=midi.length) break;
+			if (scan&carry)
+				intern.push(midi[i+j] | 0x80);
+			else
+				intern.push(midi[i+j]);
+			scan = scan<<1;
+		}
+	}
+	return intern;
+}
+	
+function _handleResponse(Ret, mIn) {
+	return new Promise((resolve,reject) => {
+		Ret.then((sx) => {
+			if (sx.command == _NOPP) {
+				let nds = new Sysex();
+				let nRet = nds.listen(mIn);
+				resolve(_handleResponse(nRet, mIn));
+			} else {
+				resolve(sx);
+			}
+		}).catch((e) =>{
+			console.log('exception occured in _handleResponse: ' + e);
+			reject(e);
+		});
+	});
+}
+
 class KorgPatch {
 	constructor(MIn, MOut, MChan) {
 		this.mIn = MIn;
@@ -41,43 +75,7 @@ class KorgPatch {
 	
 	get complete() {
 		return this._complete;
-	}
-	
-	_convertMidi2Int(midi) {
-		let intern = [];
-		for (let i=0; i< midi.length; i+=8) {
-			let carry = midi[i];
-			let scan = 1;
-			for (let j=1; j<8; j++) {
-				if (i+j>=midi.length) break;
-				if (scan&carry)
-					intern.push(midi[i+j] | 0x80);
-				else
-					intern.push(midi[i+j]);
-				scan = scan<<1;
-			}
-		}
-		return intern;
-	}
-	
-	static _handleResponse(Ret, mIn) {
-		return new Promise((resolve,reject) => {
-			Ret.then((sx) => {
-				if (sx.command == _NOPP) {
-					let nds = new Sysex();
-					let nRet = nds.listen(mIn, 60000);
-					resolve(KorgPatch._handleResponse(nRet, mIn));
-				} else {
-					resolve(sx);
-				}
-			}).catch((e) =>{
-				console.log('exception occured in _handleResponse: ' + e);
-				reject(e);
-			});
-		});
-	}
-			
-		
+	}	
 	
 	/**
 	 * readFromSynth
@@ -91,9 +89,10 @@ class KorgPatch {
 			var Ret = ds.listen(this.mIn);
 			rd.append([0]);
 			rd.send(this.mOut);
-			KorgPatch._handleResponse(Ret, this.mIn).then((sx) => {
+			_handleResponse(Ret, this.mIn).then((sx) => {
 				if (sx.raw.shift()) console.log("Got MOSS patch instead of PCM patch");
-				this.fillFromSysex(sx.raw);
+				this.__sd = _convertMidi2Int(sx.raw);
+				this._complete = true;
 				resolve("ok");
 			}).catch((e) =>{
 				console.log('exception occured in read from synth: ' + e);
@@ -124,32 +123,30 @@ class KorgPatch {
 		}
 	}
 				
-	static _readNextPatch(Result, mIn, mOut, mChan, bank, prog) {
+	static _readOneBank(Result, mIn, mOut, mChan, bank) {
 		return new Promise((resolve,reject) => {
+			const dlength = 540; //Math.trunc(540*8/7);
 			let brq;
 			let ds = new Sysex();
 			let Ret = ds.listen(mIn);
-			if (bank < 8) {
-				brq = new Sysex(mChan, _PPDR);
-				brq.append([0x20 | bank, prog, 0]); 
-			} else {
-				// will not yet be used
-				brq = new Sysex(mChan, _CPDR);
-				brq.append([0x30 | bank, prog, 0]);
-			}
+			brq = new Sysex(mChan, _PPDR);
+			brq.append([0x10 | bank, 0, 0]); 
 			brq.send(mOut);
-			KorgPatch._handleResponse(Ret, mIn).then((sx) => {
-				let resp = sx.command;
-				if (resp == _PPD) {
-					Result[prog] = new KorgSinglePatch();
-				} else if (resp == _CPD) {
-					Result[prog] = new KorgMultiPatch();
+			_handleResponse(Ret, mIn).then((sx) => {
+				if (sx.command == 0x24) reject(`Data load error ${sx.raw[0]}`);
+				if (sx.raw[0] & 1) reject(`MOSS board not supported: ${sx.raw[0]}`);
+				let IData = _convertMidi2Int(sx.raw.slice(3));
+				for (let i=0; i <128; i++) {
+					Result[i] = new KorgSinglePatch();
+					Result[i].__sd = IData.slice(i*dlength,(i+1)*dlength);
+					if (Array.isArray(Result[i].__sd)) Result[i]._complete = true;
+					else Result[i].__sd = Uint8Array.from("Transmission Error");
 				}
-				Result[prog].fillFromSysex(sx.raw.slice(3));
-				if (prog < 127) return KorgPatch._readNextPatch(Result, mIn, mOut, mChan, bank, prog+1);
-				else resolve();
+				setTimeout(() => {
+					resolve();
+				}, 1000);
 			}).catch ((e) =>{
-				console.log('exception occured in _readNextPatch: ' + e);
+				console.log('exception occured in _readOneBank: ' + e);
 				reject(e);
 			});
 		});
@@ -162,12 +159,11 @@ class KorgPatch {
 	 *
 	 * This should be part of some factory class.
 	 */
-	static readMemoryBankFromSynth(mIn, mOut, mChan, bank) {
+	static readMemoryBankFromSynth(mIn, mOut, mChan, postdat) {
 		Sysex.trace = true;
 		return new Promise((resolve,reject) => {
 				var Result = new Array(128);
-				// don't loop, recurse!
-				KorgPatch._readNextPatch(Result, mIn, mOut, mChan, bank, 0).then(function() {
+				KorgPatch._readOneBank(Result, mIn, mOut, mChan, postdat.Bank, 0).then(function() {
 					resolve(Result);
 			}).catch ((e) =>{
 				console.log('exception occured in readMemory: ' + e);
@@ -277,12 +273,12 @@ class KorgSinglePatch extends KorgPatch {
 		}
 		return res;
 	}
-	
+	/*
 	fillFromSysex(sx) {
 		this.__sd = this._convertMidi2Int(sx);
 		this._complete = true;
 	}
-	
+	*/
 	fillFromBlob(fbuf, som, eom) {
 		this.__A = fbuf.slice(som+8,som+136);	
 		this.__B = fbuf.slice(som+136, eom);

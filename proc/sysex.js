@@ -163,7 +163,7 @@ class AccessSysex extends Sysex {
 	}
 	
 	_checksum() {
-		var cs = this._model + this.command;
+		var cs = this._channel + this.command;
 		return this.rawData.reduce(function(total,val) {
 			return total + val;
 		}, cs);
@@ -177,12 +177,11 @@ class AccessSysex extends Sysex {
 		cs = this._channel = this.rawData.shift();
 		cs += this._command = this.rawData.shift();
 		this.rawData.pop();					// 0xf7
-		if (this._command in AccessDumpCommands && this.rawData.length == 257) {
-			var exp = this.raw.pop();
-			if (exp != this.rawData.reduce(function(total,val) {
-					return total + val;
-				}, cs)) {
-					var msg = `Checksum mismatch, received ${exp} instead of ${cs}`;
+		if (AccessDumpCommands.includes(this._command)&& this.rawData.length >= 257) {
+			let exp = this.raw.pop();
+			let cs = this._checksum() & 0x7f;
+			if (exp != cs) {
+					let msg = `Checksum mismatch, received ${exp} instead of ${cs}`;
 					console.log(msg);
 					throw msg;
 				}
@@ -190,8 +189,8 @@ class AccessSysex extends Sysex {
 	}
 	
 	_buildTelegram() {
-		if (this._command in AccessDumpCommands) {
-			return [this._brand, [this._model, this._channel, this._command].concat(this.rawData, [this._checksum() & 0xf7])];
+		if (AccessDumpCommands.includes(this._command)) {
+			return [this._brand, [this._model, this._channel, this._command].concat(this.rawData, [this._checksum() & 0x7f])];
 		} else  {
 			// request telegrams contain no checksum
 			return [this._brand, [this._model, this._channel, this._command].concat(this.rawData)];

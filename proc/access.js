@@ -20,6 +20,7 @@ var theInstances = [];
 
 // copy from accessui.js
 const ButtonLabels = "ABCDEFGHM";
+const SingleLimit = 8;
 
 module.exports = class Access {
 	constructor(MIn, MOut, MChan) {
@@ -63,7 +64,7 @@ module.exports = class Access {
 	readMemoryFromSynth(postdat) {
 		if (postdat.Bank == 0) this.SynthPatches = [];
 		return new Promise((resolve,reject) => {
-			Patch.readMemoryBankFromSynth(this.mIn, this.mOut, this.mChan, postdat.Bank).then((pat) => {
+			Patch.readMemoryBankFromSynth(this.mIn, this.mOut, this.mChan, postdat).then((pat) => {
 				let Names = [];
 				this.SynthPatches.push(pat);
 				pat.forEach((bk) => {
@@ -97,7 +98,7 @@ module.exports = class Access {
 			if (start == -1) reject("base64 error");
 			try {
 				var Names = [];
-				// why doen't this work?
+				// why doesn't this work?
 				// var Dat = Uint8Array.from(Base64.atob(postdat.slice(start+7)));
 				var Dat = Base64.atob(postdat.slice(start+7));
 				var DatArr = new Array(Dat.length);
@@ -106,10 +107,13 @@ module.exports = class Access {
 				this.FilePatches = Patch.readMemoryFromBlob(DatArr);
 				this.FilePatches.forEach((bank) => {
 					let bk = [];
+					let typ;
+					if (bank < SingleLimit) typ = 'S';
+					else typ = 'M';
 					bank.forEach((pt) => {
 						bk.push(pt.patchname);
 					});
-					Names.push(bk);
+					Names.push({pat:bk, type:typ});
 				});
 				resolve(Names);
 			} catch (e) {
@@ -169,10 +173,10 @@ module.exports = class Access {
 	 */
 	_isCompatible(value, bank) {
 		if (value instanceof SinglePatch) {
-			if (bank >= 8)
+			if (bank >= SingleLimit)
 				return "Cannot move single patch to multi bank";
 		} else {
-			if (bank < 8)
+			if (bank < SingleLimit)
 				return "Cannot move multi patch to single bank";
 		}
 		return "Ok";

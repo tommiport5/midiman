@@ -93,17 +93,16 @@ class AccessPatch {
 	 * reads the internal memory and returns an array of AccessPatch objects
 	 * cannot read all banks in one go, because the browser gets unpatient :-(
 	 */
-	static async readMemoryBankFromSynth(mIn, mOut, mChan, bank) {
+	static async readMemoryBankFromSynth(mIn, mOut, mChan, postdat) {
 		try {
 			var brq;
 			var resp;
 			var ds = new Sysex();
 			var Result = new Array(128);
-			if (bank < 8) {
+			if (postdat.type == 'S') {
 				brq = new Sysex(mChan, _SBR);
-				brq.append([bank+1]);
+				brq.append([postdat.Bank+1]);
 			} else {
-				// Bank8 is the multi bank
 				brq = new Sysex(mChan, _MBR);
 				brq.append([1]);
 			}

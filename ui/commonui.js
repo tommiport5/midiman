@@ -4,7 +4,7 @@ const port = 10532;
 
 const defaultBorderstyle = "outset";
 const highlightBorderstyle = "inset";
-const ButtonLabels = "ABCDEFGHM";
+const ButtonLabels = SingleReadBanks + MultiReadBanks;
 const ButtonPrefix = "SF";
 
 /**
@@ -12,11 +12,16 @@ const ButtonPrefix = "SF";
  * organizes the navigation and drag'n'drop on the patch tables.
  * Provides ids for the patches on server side and on ui side.
  * Patches on the server are organized in 8 banks @ 128 patches.
- * Patches on the ui side are organized in 8 banks @ 2 pages @ 64 patches.
+ * Patches on the ui side are organized in 8 banks @ 2 pages @ 64 patches (Numbers apply to access virus).
  * Additionaly, there are 2 slots for the synth patches and the file patches, so
  * there is one instance for the SynthPatches and one for the FilePatches.
- * One extra patch is for the clipboard. A side consideration is that HTML element 
- * ids should be unique on a page and should not be changed once they are assigned.
+ * One extra patch is for the clipboard. 
+ * A side consideration is that HTML element ids should be unique on a page and should not 
+ * be changed once they are assigned.
+ * Banks of patches can be of several types (Single, Multi), which are denoted by 'type' letters (currently 'S' or 'M').
+ * The original sysex data in a bank are the "pat" properties of the bank.
+ * To distinguish between "Single Patches" or "Programs" and "Multi Patches" or "Combinations"
+ * the former are denoted by upper case letters and the latter by lower case letters.
  */
 class Navi {
 	constructor(pid, seltab) {
@@ -44,7 +49,7 @@ class Navi {
 	set_pat(pnum, text) {
 		let bank = ButtonLabels.indexOf(this.curpage.substr(1,1));
 		if (this.curpage.charAt(2) == 2) pnum += 64;
-		this._patches[bank][pnum] = text;
+		this._patches[bank].pat[pnum] = text;
 	}
 		
 	
@@ -105,10 +110,9 @@ class Navi {
 		var arr = this._pelem.querySelectorAll(".pname");
 		var ind = this._pelem.querySelectorAll(".pnh");
 		var i = 0;
-		var startAt;
 		var tabdat;
 		this._highlightButton(bank, page);
-		if (this._patches == undefined) {
+		if (this._patches == undefined || this.patches[bank] == undefined) {
 			for (;i<arr.length;) {
 				arr[i++].innerText = "";
 			}
@@ -118,19 +122,12 @@ class Navi {
 			for (let n=0; n<ind.length; n++) {
 				ind[n].innerText = n.toString() + "_";
 			}
-			startAt = 0;
 		} else {
 			for (let n=0; n<ind.length; n++) {
 				ind[n].innerText = (n+6).toString() + "_";
 			}
-			startAt = 0;
 		}
-		for (; i<startAt;) {
-			arr[i].innerText = "";
-			arr[i].setAttribute("draggable", false);
-			arr[i++].removeAttribute("ondragstart");
-		}
-		let btab = this._patches[bank];
+		let btab = this._patches[bank].pat;
 		if (btab && page == 0) {
 			tabdat = btab.slice(0,70);
 		} else if (btab) {
@@ -148,21 +145,6 @@ class Navi {
 			arr[i].innerText = "";
 			arr[i].setAttribute("draggable", false);
 			arr[i++].removeAttribute("ondragstart");
-		}
-	}
-	
-	/**
-	 * prepareDnd !!!obsolete, is done during displayNames
-	 * Assigns ids to the drop sources and targets.
-	 * The ids must be different for file and synth, but independent of the currently displayed page,
-	 * so they are "S" or "F" followed by the patch number 0-63.
-	 */
-	prepareDnD() {
-		var arr = this._pelem.querySelectorAll(".pname");
-		for (var i=0; i < arr.length; i++) {
-			arr[i].setAttribute("draggable", true);
-			arr[i].id = this._buttonPrefix() + i;	
-			arr[i].setAttribute("ondragstart","dragStart(event)");
 		}
 	}
 	
@@ -204,7 +186,7 @@ class Navi {
 			document.getElementById(this._curpage).style.borderStyle = defaultBorderstyle;
 		}
 		let pstring = this._buttonPrefix();
-		pstring += ButtonLabels[bank] + (page+1);
+		pstring += ButtonLabels[bank] + (page+1); 
 		this._curpage = pstring;
 		document.getElementById(this._curpage).style.borderStyle = highlightBorderstyle;
 	}
@@ -323,22 +305,41 @@ function writeCurrentPatch() {
 	});
 }
 	
-function readMemoryBank(i) {
-	let Settings = {Mdl: Model, Bank: i};
+/*
+ * Note: It is useless to return a 'thenable' from the function for 'getJsonParam'
+ * because it will not be used.
+ * This schebang is working more by chance, but the mix of recursion and sequence is not easy.
+ * TODO: Find something more straight forward.
+ */ 
+function readMemoryBank(i, typ, followup) {
+	let Settings = {Mdl: Model, Bank: i, type: typ};
+	let ctrl;
+	if (typ == 'S') ctrl = SingleReadBanks;
+	else ctrl = MultiReadBanks;
 	document.getElementById("Result").innerText = `Receiving synth memory ${ButtonLabels[i]}`;
-	getJsonParam('http://localhost:' + port +'/readMemory', JSON.stringify(Settings), (data) => {
-		document.getElementById("Result").innerText = data.result;
-		if (data.names) {
-			SynthPatches.push_pat(data.names);
-		}
-		if (++i < NumReadBanks) readMemoryBank(i);
-		else SynthPatches.displayNames(0, 0);
-
-	});
-}	
+	try {
+		getJsonParam('http://localhost:' + port +'/readMemory', JSON.stringify(Settings), (data) => {
+			document.getElementById("Result").innerText = data.result;
+			if (data.names) {
+				SynthPatches.push_pat({pat: data.names, type: typ});
+			}
+			while (ctrl[i] == ' ') ++i;
+			if (++i < ctrl.length) {
+				readMemoryBank(i, typ, followup);
+			} else if(followup) {
+				followup(i);
+			}
+		});
+	} catch (e) {
+		document.getElementById("Result").innerText = `Error reading memory banks: ${e}`;
+	}
+}
+	
 function readMemoryBanks() {
 	SynthPatches.patches = [];
-	readMemoryBank(0);
+	var display = function(ign) {SynthPatches.displayNames(0,0);};
+	var readMultis = function(i) {readMemoryBank(i, 'M', display);};
+	readMemoryBank(0, 'S', readMultis);
 }
 
 function writeMemory() {
@@ -414,11 +415,6 @@ function prepareSwitchTable() {
 	FilePatches.prepareSwitchTable();
 }
 
-function prepareDnd() {
-	SynthPatches.prepareDnD();
-	FilePatches.prepareDnD();
-}
-
 function displayForm() {
 	var Settings;
 	SynthPatches = new Navi("stab","slb");
@@ -458,7 +454,6 @@ function displayForm() {
 	document.getElementById("writeMem").addEventListener('click',writeMemory);
 	document.getElementById("readFile").addEventListener('click',readFile);
 	document.getElementById("swapbutton").addEventListener('click',swap);
-	// prepareDnd();
 }
 
 window.addEventListener("load", displayForm);

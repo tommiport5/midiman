@@ -63,7 +63,7 @@ module.exports = class Korg {
 	readMemoryFromSynth(postdat) {
 		if (postdat.Bank == 0) this.SynthPatches = [];
 		return new Promise((resolve,reject) => {
-			Patch.readMemoryBankFromSynth(this.mIn, this.mOut, this.mChan, postdat.Bank).then((pat) => {
+			Patch.readMemoryBankFromSynth(this.mIn, this.mOut, this.mChan, postdat).then((pat) => {
 				let Names = [];
 				this.SynthPatches.push(pat);
 				pat.forEach((bk) => {
