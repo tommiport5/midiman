@@ -7,13 +7,89 @@ const highlightBorderstyle = "inset";
 const ButtonLabels = SingleReadBanks + MultiReadBanks;
 const ButtonPrefix = "SF";
 
+var NetSingleBanks = SingleReadBanks.replace(/ /g, '');
+var NetMultiBanks = MultiReadBanks.replace(/ /g, '');
+
+/**
+ * class PatId
+ * Generalized patch id.
+ * Consists of:
+ *	*not* Source/Destination: S[ynth] of F[ile]	, because this is determined by the containing class
+ *	*not* Bank Type:		S[ingle] or M[ulti] , because this can be calculated from the bank number
+ *	*not* display page:		1 or 2				, because this can be calculated from pnum
+ * 	Bank Number: 	0..14(currently), depending on Synth architecture
+ *	Patch Number:	0..127, depending on Synth architecture
+ * It takes account of 'holes' (space characters) in the ..ReadBanks specifiers, which
+ * have no corresponding entry in the 'pat' array and no bank number
+ * With pnum = 0 or 64 it will also be used as value for Navi._curpage
+ */
+class PatId {
+	constructor(bank, pnum) {
+		this._bank = bank;
+		this._pnum = pnum;
+	}
+	
+	get BankTypePrefix() {
+		return this._bank < NetSingleBanks.length ? 'S' : 'M';
+	}
+	get BankLetter() {
+		if (this.BankTypePrefix == 'S') return NetSingleBanks[this._bank];
+		else return NetMultiBanks[this._bank-NetSingleBanks.length];
+	}
+	get bank() {return this._bank;}
+	get pnum() {return this._pnum;}
+	get page() {return this._pnum < 64 ? 0 : 1;}
+	
+	/**
+	 * fromSelectButton
+	 * Creates an instance of PatId. Inverse to asButtonId
+	 */
+	static fromSelectButton(button_id) {
+	}
+	
+	/**
+	 * toString: a readable and parseable string representation
+	 */
+	toString() {
+		var str = this.BankTypePrefix;
+		str += this.BankLetter;
+		str += this.pnum;
+		return str;
+	}
+	
+	/**
+	 * asButtonId
+	 * a readable id for a select button.
+	 * Needs to be told, where this instance is in.
+	 * Does not include pnum, but calculated page.
+	 */
+	asButtonId(synth_or_file) {
+		var str = synth_or_file + this.BankTypePrefix;;
+		str += this.BankLetter;
+		str += this.pnum < 64 ? '1' : '2';
+		return str;
+	}
+	
+	/**
+	 *convertDndToServer
+	 * converts the drop source/target id to a server string
+	 */
+	convertDndToServer(target_id) {
+		let sv = target_id[0].toLowerCase();
+		sv += this.BankLetter;
+		let num = Number(target_id.substr(1));
+		if (this.page) num += 60;	// patchnumbers on page 2 start at 60!
+		return sv + num;
+	}
+}
+	
 /**
  * class Navi
  * organizes the navigation and drag'n'drop on the patch tables.
  * Provides ids for the patches on server side and on ui side.
  * Patches on the server are organized in 8 banks @ 128 patches.
  * Patches on the ui side are organized in 8 banks @ 2 pages @ 64 patches (Numbers apply to access virus).
- * Additionaly, there are 2 slots for the synth patches and the file patches, so
+ * Additionally, there are 2 slots for the synth patches and the file patches, so
  * there is one instance for the SynthPatches and one for the FilePatches.
  * One extra patch is for the clipboard. 
  * A side consideration is that HTML element ids should be unique on a page and should not 
@@ -33,23 +109,16 @@ class Navi {
 	
 	get patches() {return this._patches;}
 	set patches(pat) {this._patches = pat;}
-	// The current page member consists of the instance prefix(S or F), the bank letter (A - H) and the page number (0 or 1)
-	// Its serves as the id for the select button.
+	// The current page member is of class PatId
 	get curpage() {return this._curpage;}
-	set curpage(pg) {
-		// make it suitable on the fly
-		if (pg) {
-			this._curpage = this._buttonPrefix() + pg.slice(1);
-		} else {
-			this._curpage = undefined;
-		}
-	}
+	set curpage(pg) {this._curpage = pg;}
 	
+	// push a patch name (instead of getting and setting
 	push_pat(pat) {this._patches.push(pat);}
+	// complete pnum with the info from curpage and set the text
+	// of the corresponding entry in this._patches
 	set_pat(pnum, text) {
-		let bank = ButtonLabels.indexOf(this.curpage.substr(1,1));
-		if (this.curpage.charAt(2) == 2) pnum += 64;
-		this._patches[bank].pat[pnum] = text;
+		this._patches[this._curpage.bank].pat[pnum] = text;
 	}
 		
 	
@@ -64,29 +133,41 @@ class Navi {
 		var tmp = this._patches;
 		this._patches = rOther._patches;
 		rOther._patches = tmp;
-		if (this.curpage) document.getElementById(this.curpage).style.borderStyle = defaultBorderstyle;
-		if (rOther.curpage) document.getElementById(rOther._curpage).style.borderStyle = defaultBorderstyle;
+		if (this._curpage) document.getElementById(this._curpage.asButtonId(this._buttonPrefix())).style.borderStyle = defaultBorderstyle;
+		if (rOther._curpage) document.getElementById(rOther._curpage.asButtonId(rOther._buttonPrefix())).style.borderStyle = defaultBorderstyle;
 		tmp = this.curpage;
-		this.curpage = rOther.curpage;
-		rOther.curpage = tmp;
+		this._curpage = rOther._curpage;
+		rOther._curpage = tmp;
 	}
 	
 	/**
-	 * prepareSwitchTable 
-	 * only do it once for each instance!
+	 * prepareSwitchTable
+	 * Constructs the buttons for the switch tables including the unique ids.
 	 */
-	prepareSwitchTable() {
-		let arr = document.getElementsByClassName(this._seltab);
-		for (let i=0; i < arr.length; i++) {
-			let digit = i % 2 + 1;
+	prepareSwitchTable(TabId, ButList) {
+		var Tab = document.getElementById(TabId);
+		Tab.textContent = "";
+		var CurrentRow;
+		for(let i=0; i< ButList.length; i++) {
+			if (i%PagesPerRow == 0) {
+				CurrentRow = Tab.insertRow(-1);
+			}
+			let td = CurrentRow.insertCell(-1);
+			td.className = this._seltab == 's' ? "slb" : "flb";
 			let btn = document.createElement("button");
-			btn.type = "button";
-			let bank = Math.trunc(i/2);
-			let page = digit - 1;
-			btn.onclick = this._makeDisplayNames(bank, page);
-			btn.innerText = ButtonLabels[Math.trunc(i/2)] + digit;
-			btn.id = this._buttonPrefix(this._seltab) + btn.innerText;
-			arr[i].appendChild(btn);
+			let pid = new PatId(i,0);
+			btn.innerText = ButList[i] + "1";
+			btn.onclick = this._makeDisplayNames(pid);
+			btn.id = pid.asButtonId(this._buttonPrefix());
+			td.appendChild(btn);
+			td = CurrentRow.insertCell(-1);
+			td.className = this._seltab == 's' ? "slb" : "flb";
+			btn = document.createElement("button");
+			pid = new PatId(i,64);
+			btn.innerText = ButList[i] + "2";
+			btn.onclick = this._makeDisplayNames(pid);
+			btn.id = pid.asButtonId(this._buttonPrefix());
+			td.appendChild(btn);
 		}
 	}
 	
@@ -95,30 +176,28 @@ class Navi {
 	 * extracts bank and page from curpage and calls displayNames.
 	 */
 	refreshDisplay() {
-		var bank;
-		var page;
+		var patid;
 		if (this._curpage == undefined) {
-			bank = page = 0;	// erase display
+			patid = new PatId(0,0);	// erase display
 		} else {
-			bank = ButtonLabels.indexOf(this._curpage[1]);
-			page = Math.trunc(this._curpage[2]-1);
+			patid = this._curpage;
 		}
-		this.displayNames(bank, page);
+		this.displayNames(patid);
 	}
 	
-	displayNames(bank, page) {
+	displayNames(patid) {
 		var arr = this._pelem.querySelectorAll(".pname");
 		var ind = this._pelem.querySelectorAll(".pnh");
 		var i = 0;
 		var tabdat;
-		this._highlightButton(bank, page);
-		if (this._patches == undefined || this.patches[bank] == undefined) {
+		this._highlightButton(patid);
+		if (this._patches == undefined || this.patches[patid.bank] == undefined) {
 			for (;i<arr.length;) {
 				arr[i++].innerText = "";
 			}
 			return;
 		}
-		if (page == 0) {
+		if (patid.page == 0) {
 			for (let n=0; n<ind.length; n++) {
 				ind[n].innerText = n.toString() + "_";
 			}
@@ -127,8 +206,8 @@ class Navi {
 				ind[n].innerText = (n+6).toString() + "_";
 			}
 		}
-		let btab = this._patches[bank].pat;
-		if (btab && page == 0) {
+		let btab = this._patches[patid.bank].pat;
+		if (btab && patid.page == 0) {
 			tabdat = btab.slice(0,70);
 		} else if (btab) {
 			tabdat = btab.slice(60);
@@ -163,15 +242,9 @@ class Navi {
 			case "c":
 				return "c";
 			case "S":
-				sv = "s" + SynthPatches.curpage.substr(1,1);
-				num = Number(tg.substr(1));
-				if (SynthPatches.curpage.charAt(2) == 2) num += 60;
-				return sv + num;
+				return SynthPatches.curpage.convertDndToServer(tg);
 			case "F":
-				sv = "f" + FilePatches.curpage.substr(1,1);
-				num = Number(tg.substr(1));
-				if (FilePatches.curpage.charAt(2) == 2) num += 60;
-				return sv + num;
+				return FilePatches.curpage.convertDndToServer(tg);
 		}
 		
 	}
@@ -181,20 +254,18 @@ class Navi {
 		else return ButtonPrefix[1];
 	}
 	
-	_highlightButton(bank, page) {
+	_highlightButton(patid) {
 		if (this._curpage) {
-			document.getElementById(this._curpage).style.borderStyle = defaultBorderstyle;
+			document.getElementById(this._curpage.asButtonId(this._buttonPrefix())).style.borderStyle = defaultBorderstyle;
 		}
-		let pstring = this._buttonPrefix();
-		pstring += ButtonLabels[bank] + (page+1); 
-		this._curpage = pstring;
-		document.getElementById(this._curpage).style.borderStyle = highlightBorderstyle;
+		this._curpage = patid;
+		document.getElementById(this._curpage.asButtonId(this._buttonPrefix())).style.borderStyle = highlightBorderstyle;
 	}
 	
-	_makeDisplayNames(bank, page) {
+	_makeDisplayNames(patid) {
 		var This = this;
 		return function() {
-			This.displayNames(bank, page);
+			This.displayNames(patid);
 		};
 	}
 	
@@ -337,7 +408,7 @@ function readMemoryBank(i, typ, followup) {
 	
 function readMemoryBanks() {
 	SynthPatches.patches = [];
-	var display = function(ign) {SynthPatches.displayNames(0,0);};
+	var display = function(ign) {SynthPatches.displayNames(new PatId(0,0));};
 	var readMultis = function(i) {readMemoryBank(i, 'M', display);};
 	readMemoryBank(0, 'S', readMultis);
 }
@@ -359,7 +430,7 @@ function readFile() {
 			document.getElementById("Result").innerText = data.result;
 			if (data.names) {
 				FilePatches.patches = data.names;
-				FilePatches.displayNames(0, 0);
+				FilePatches.displayNames(new PatId(0,0));
 			}
 		});
 	};
@@ -394,7 +465,7 @@ function drop(ev) {
 	let src_txt = ev.dataTransfer.getData("text");
 	let dest_id = ev.target.id;
 	let dest_txt = ev.target.text;
-	if (dest_id[0] == 'S' ) SynthPatches.set_pat(Number(dest_id.substr(1)), src_txt);
+	if (dest_id[0] == 'S' ) SynthPatches.set_pat(Number(dest_id.substr(2)), src_txt);
 	if (dest_id[0] == 'F' ) FilePatches.set_pat(Number(dest_id.substr(1)), src_txt);
 	let Settings = {
 		from: Navi.serverFromTarget(src_id),
@@ -411,8 +482,10 @@ function drop(ev) {
 }
 
 function prepareSwitchTable() {
-	SynthPatches.prepareSwitchTable();
-	FilePatches.prepareSwitchTable();
+	SynthPatches.prepareSwitchTable("ssstab", NetSingleBanks);
+	SynthPatches.prepareSwitchTable("ssmtab", NetMultiBanks);
+	FilePatches.prepareSwitchTable("fsstab", NetSingleBanks);
+	FilePatches.prepareSwitchTable("fsmtab", NetMultiBanks);
 }
 
 function displayForm() {

@@ -10,6 +10,9 @@
 const Model = "access virus b";
 const SingleReadBanks = "ABCDEFGH";
 const MultiReadBanks = "M";
+const SingleWriteBanks ="AB";
+const MultiWriteBanks = "M"
+const PagesPerRow = 4;
 </script>
 <script src="commonui.js"></script> 
 </head>
@@ -60,11 +63,18 @@ DeviceId
 <button type="button" class="nav_item" id="readMem">Read Synth</button>
 <button type="button" class="nav_item" id="writeMem">Write Synth</button>
 </div>
-<table class="seltab">
-<tr><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td></tr>
-<tr><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td></tr>
-<tr><td class="slb" colspan="4"><td class="slb" colspan="4"></tr>
+<div class="seltab">
+<div>
+Single
+<table id="ssstab">
 </table>
+</div>
+<div>
+Multi
+<table id="ssmtab">
+</table>
+</div>
+</div>
 <table id="stab" ondrop="drop(event)" ondragover="allowDrop(event)">
 <thead>
 <tr><th class="frameless" colspan = "2"></th><th colspan="10">Patchnumber (Low)</th></tr>
@@ -99,11 +109,18 @@ DeviceId
 <a href="http://localhost:10532/writeFile.syx?Mdl=access+virus+b" class="button" download>Write File</a>
 </form>
 </span>
-<table class="seltab">
-<tr><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td></tr>
-<tr><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td></tr>
-<tr><td class="flb" colspan="4"><td class="flb" colspan="4"></tr>
+<div class="seltab">
+<div>
+Single
+<table id="fsstab">
 </table>
+</div>
+<div>
+Multi
+<table id="fsmtab">
+</table>
+</div>
+</div>
 <table id="ftab" ondrop="drop(event)" ondragover="allowDrop(event)">
 <thead>
 <tr><th class="frameless" colspan = "2"></th><th colspan="10">Patchnumber (Low)</th></tr>

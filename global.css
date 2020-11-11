@@ -164,18 +164,19 @@ input {
 	border-style:solid;
 }
 
-button, .slb {
+button, .slb, .flb {
 	border-style: outset;
 	box-shadow: 0 0 2px gray inset;
 }
 
 .seltab {
 	display: grid;
+	grid-template-columns: auto auto;
 	border: none;
 	justify-self: center;
 }
 
-.slb {
+.slb, .flb {
 	justify-self: center;
 	min-width: 3em;
 }

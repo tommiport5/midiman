@@ -17,7 +17,9 @@ const _MBR = 0x33;
 const _SID = 0x10;
 const _MUD = 0x11;
 
-const WriteBanks = [1,2];
+const SingleWriteBanks ="AB";
+const MultiWriteBanks = "M"
+
 
 function delay(ms) {
 	return new Promise((resolve) => {
@@ -190,24 +192,28 @@ class AccessPatch {
 	 * writes all the banks in Mem to the Synth.
 	 */
 	static writeMemoryToSynth(Mem, mOut, mChan) {
-		for (let bank of WriteBanks) {
+		for (let i=0; i< SingleWriteBanks.length; i++) {
+			if (SingleWriteBanks[i] == ' ') continue;
 			let pnum = 0;
-			Mem[bank-1].forEach((pt)=> {
+			Mem[i].forEach((pt)=> {
 				pt.mOut = mOut;
 				pt.mChan = mChan;		// override the stored values
-				let pts = pt.buildSysex(bank, pnum);
+				let pts = pt.buildSysex(i+1, pnum);
 				pts.send(mOut);
 				pnum++;
 			});
 		}
-		let pnum = 0;
-		Mem[8].forEach((pt)=> {
-			pt.mOut = mOut;
-			pt.mChan = mChan;		// override the stored values
-			let pts = pt.buildSysex(1, pnum);
-			pts.send(mOut);
-			pnum++;
-		});
+		for (let i=0; i< MultiWriteBanks.length; i++) {
+			if (MultiWriteBanks[i] == ' ') continue;
+			let pnum = 0;
+			Mem[i].forEach((pt)=> {
+				pt.mOut = mOut;
+				pt.mChan = mChan;		// override the stored values
+				let pts = pt.buildSysex(i+1, pnum);
+				pts.send(mOut);
+				pnum++;
+			});
+		}
 	}
 }
 
@@ -230,13 +236,13 @@ class AccessSinglePatch extends AccessPatch {
 		let add = sx.raw.slice(0,2);
 		let sxd = sx.raw.slice(2);
 		this.__A = sxd.slice(0,128);
-		this.__B = sxd.slice(128);
+		this.__B = sxd.slice(128);				// I don't know, if this would be the right place
 		this._complete = true;
 	}
 	
 	fillFromBlob(fbuf, som, eom) {
 		this.__A = fbuf.slice(som+8,som+136);	
-		this.__B = fbuf.slice(som+136, eom);
+		this.__B = fbuf.slice(som+136, eom-1);   	// I don't know, if this is the right place
 		this._complete = true;
 	}
 

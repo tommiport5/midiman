@@ -179,6 +179,7 @@ class AccessSysex extends Sysex {
 		this.rawData.pop();					// 0xf7
 		if (AccessDumpCommands.includes(this._command)&& this.rawData.length >= 257) {
 			let exp = this.raw.pop();
+			//console.log(`${this.rawData.length} byte received raw sysex`);
 			let cs = this._checksum() & 0x7f;
 			if (exp != cs) {
 					let msg = `Checksum mismatch, received ${exp} instead of ${cs}`;
@@ -190,6 +191,7 @@ class AccessSysex extends Sysex {
 	
 	_buildTelegram() {
 		if (AccessDumpCommands.includes(this._command)) {
+			//console.log(`${this.rawData.length} byte transmitted raw sysex`);
 			return [this._brand, [this._model, this._channel, this._command].concat(this.rawData, [this._checksum() & 0x7f])];
 		} else  {
 			// request telegrams contain no checksum

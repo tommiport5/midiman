@@ -5,10 +5,15 @@
 <meta content="no-cache" http-equiv="cache-control"/>
 <meta content="no-cache" http-equiv="pragma"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" type="text/css" href="/global.css">
+<link rel="stylesheet" type="text/css" href="../global.css">
 <script>
 const Model = "Korg Triton";
-const NumReadBanks = 8;
+const SingleReadBanks = "ABCDE GHIJKLMN";
+const MultiReadBanks = "ABCDE  HIJKLMN";
+const SingleWriteBanks ="AB";
+const MultiWriteBanks = "M"
+const PagesPerRow = 5;
+
 </script>
 <script src="commonui.js"></script> 
 </head>
@@ -59,11 +64,18 @@ DeviceId
 <button type="button" class="nav_item" id="readMem">Read Synth</button>
 <button type="button" class="nav_item" id="writeMem">Write Synth</button>
 </div>
-<table class="seltab">
-<tr><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td></tr>
-<tr><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td><td class="slb"></td></tr>
-<tr><td class="slb" colspan="4"><td class="slb" colspan="4"></tr>
+<div class="seltab">
+<div>
+Programs
+<table id="ssstab">
 </table>
+</div>
+<div>
+Combinations
+<table id="ssmtab">
+</table>
+</div>
+</div>
 <table id="stab" ondrop="drop(event)" ondragover="allowDrop(event)">
 <thead>
 <tr><th class="frameless" colspan = "2"></th><th colspan="10">Patchnumber (Low)</th></tr>
@@ -71,7 +83,7 @@ DeviceId
 </thead>
 <tbody>
 <tr><td rowspan=8 class="bank-label">Patchnumber (High)</td><td class="pnh">0_</td>
-<td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td>,</tr>
+<td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
 <tr><td class="pnh">1_</td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
 <tr><td class="pnh">2_</td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
 <tr><td class="pnh">3_</td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
@@ -98,11 +110,18 @@ DeviceId
 <a href="http://localhost:10532/writeFile.syx?Mdl=Korg+Triton" class="button" download>Write File</a>
 </form>
 </span>
-<table class="seltab">
-<tr><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td></tr>
-<tr><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td><td class="flb"></td></tr>
-<tr><td class="flb" colspan="4"><td class="flb" colspan="4"></tr>
+<div class="seltab">
+<div>
+Programs
+<table id="fsstab">
 </table>
+</div>
+<div>
+Combinations
+<table id="fsmtab">
+</table>
+</div>
+</div>
 <table id="ftab" ondrop="drop(event)" ondragover="allowDrop(event)">
 <thead>
 <tr><th class="frameless" colspan = "2"></th><th colspan="10">Patchnumber (Low)</th></tr>
@@ -110,7 +129,7 @@ DeviceId
 </thead>
 <tbody>
 <tr><td rowspan=8 class="bank-label">Patchnumber (High)</td><td class="pnh">0_</td>
-<td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td>,</tr>
+<td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
 <tr><td class="pnh">1_</td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
 <tr><td class="pnh">2_</td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
 <tr><td class="pnh">3_</td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td><td class="pname"></td></tr>
