@@ -148,22 +148,25 @@ class Navi {
 		var Tab = document.getElementById(TabId);
 		Tab.textContent = "";
 		var CurrentRow;
+		var Offset;
+		if (TabId[1] == 'm') Offset = NetSingleBanks.length;
+		else Offset = 0;
 		for(let i=0; i< ButList.length; i++) {
 			if (i%PagesPerRow == 0) {
 				CurrentRow = Tab.insertRow(-1);
 			}
 			let td = CurrentRow.insertCell(-1);
-			td.className = this._seltab == 's' ? "slb" : "flb";
+			td.className = this._seltab[0] == 's' ? "slb" : "flb";
 			let btn = document.createElement("button");
-			let pid = new PatId(i,0);
+			let pid = new PatId(i+Offset,0);
 			btn.innerText = ButList[i] + "1";
 			btn.onclick = this._makeDisplayNames(pid);
 			btn.id = pid.asButtonId(this._buttonPrefix());
 			td.appendChild(btn);
 			td = CurrentRow.insertCell(-1);
-			td.className = this._seltab == 's' ? "slb" : "flb";
+			td.className = this._seltab[0] == 's' ? "slb" : "flb";
 			btn = document.createElement("button");
-			pid = new PatId(i,64);
+			pid = new PatId(i+Offset,64);
 			btn.innerText = ButList[i] + "2";
 			btn.onclick = this._makeDisplayNames(pid);
 			btn.id = pid.asButtonId(this._buttonPrefix());
@@ -385,8 +388,11 @@ function writeCurrentPatch() {
 function readMemoryBank(i, typ, followup) {
 	let Settings = {Mdl: Model, Bank: i, type: typ};
 	let ctrl;
-	if (typ == 'S') ctrl = SingleReadBanks;
-	else ctrl = MultiReadBanks;
+	if (typ == 'S') {
+		ctrl = SingleReadBanks;
+	} else {
+		ctrl = MultiReadBanks;
+	}
 	document.getElementById("Result").innerText = `Receiving synth memory ${ButtonLabels[i]}`;
 	try {
 		getJsonParam('http://localhost:' + port +'/readMemory', JSON.stringify(Settings), (data) => {
@@ -394,8 +400,10 @@ function readMemoryBank(i, typ, followup) {
 			if (data.names) {
 				SynthPatches.push_pat({pat: data.names, type: typ});
 			}
-			while (ctrl[i] == ' ') ++i;
-			if (++i < ctrl.length) {
+			do {
+				i++;
+			} while (i < ctrl.length && ctrl[i] == ' ');
+			if (i < ctrl.length) {
 				readMemoryBank(i, typ, followup);
 			} else if(followup) {
 				followup(i);
@@ -409,7 +417,7 @@ function readMemoryBank(i, typ, followup) {
 function readMemoryBanks() {
 	SynthPatches.patches = [];
 	var display = function(ign) {SynthPatches.displayNames(new PatId(0,0));};
-	var readMultis = function(i) {readMemoryBank(i, 'M', display);};
+	var readMultis = function(i) {readMemoryBank(0, 'M', display);};
 	readMemoryBank(0, 'S', readMultis);
 }
 
@@ -483,9 +491,9 @@ function drop(ev) {
 
 function prepareSwitchTable() {
 	SynthPatches.prepareSwitchTable("ssstab", NetSingleBanks);
-	SynthPatches.prepareSwitchTable("ssmtab", NetMultiBanks);
+	SynthPatches.prepareSwitchTable("smstab", NetMultiBanks);
 	FilePatches.prepareSwitchTable("fsstab", NetSingleBanks);
-	FilePatches.prepareSwitchTable("fsmtab", NetMultiBanks);
+	FilePatches.prepareSwitchTable("fmstab", NetMultiBanks);
 }
 
 function displayForm() {
