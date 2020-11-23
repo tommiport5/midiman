@@ -77,7 +77,7 @@ module.exports = class Access {
 		});
 	}
 
-	writeMemoryToSynth() {
+	writeMemoryToSynth(postdat) {
 		return new Promise((resolve, reject) => {
 			if (this.SynthPatches == undefined) {
 				reject("No patches loaded");
@@ -223,10 +223,10 @@ module.exports = class Access {
 		if ((from[0] == 's' || to[0] == 's') && this.SynthPatches == undefined) return "SynthPatches undefined!";
 		if ((from[0] == 'f' || to[0] == 'f') && this.FilePatches == undefined) return "FilePatches undefined!";
 		try {
-		this._getOrSetVar(to, this._getOrSetVar(from));
-			return "Ok";
+			this._getOrSetVar(to, this._getOrSetVar(from));
+			return {ok:this._getOrSetVar(from).patchname};
 		} catch (e) {
-			return e.toString();
+			return {error:e.toString()};
 		}
 	}
 }

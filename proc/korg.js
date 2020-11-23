@@ -13,13 +13,10 @@ var Sysex = Combi.kg;
 var KorgPatchModule = require('./korgpatch');
 var Patch = KorgPatchModule.base;
 var SinglePatch = KorgPatchModule.single;
-var CombiPatch = KorgPatchModule.combi;
+var MultiPatch = KorgPatchModule.multi;
 const Base64 = require('Base64');
 
 var theInstances = [];
-
-// copy from commonui.js
-const ButtonLabels = "ABCDEFGHM";
 
 module.exports = class Korg {
 	constructor(MIn, MOut, MChan) {
@@ -39,9 +36,9 @@ module.exports = class Korg {
 	}
 	
 	readCurrentPatch() {
-		var curpat = new SinglePatch (this.mIn, this.mOut, this.mChan);
+		var curpat = new SinglePatch ();		//TODO: query mode and read either program or combi
 		return new Promise((resolve,reject) => {
-			curpat.readFromSynth().then((ign) => {
+			curpat.readFromSynth(this.mIn, this.mOut, this.mChan).then((ign) => {
 				this._clipboard = curpat;
 				resolve(curpat);
 			}).catch ((e) => {
@@ -52,7 +49,7 @@ module.exports = class Korg {
 	
 	writeCurrentPatch() {
 		return new Promise((resolve,reject) => {
-			this._clipboard.writeToSynth(this.mOut, this.mChan).then((ign) => {
+			this._clipboard.writeToSynth(this.mIn, this.mOut, this.mChan).then((ign) => {
 				resolve(this.clipboard);
 			}).catch ((e) => {
 				reject(e);
@@ -61,12 +58,18 @@ module.exports = class Korg {
 	}
 	
 	readMemoryFromSynth(postdat) {
-		if (postdat.Bank == 0) this.SynthPatches = [];
+		var BankTypeObject;
+		if (postdat.type == 'S') {
+			if (postdat.Bank == 0) this.SynthPatches = [];
+			BankTypeObject = new SinglePatch();
+		} else {
+			BankTypeObject = new MultiPatch();
+		}			
 		return new Promise((resolve,reject) => {
-			Patch.readMemoryBankFromSynth(this.mIn, this.mOut, this.mChan, postdat).then((pat) => {
+			BankTypeObject.readMemoryBankFromSynth(this.mIn, this.mOut, this.mChan, postdat).then((res) => {
 				let Names = [];
-				this.SynthPatches.push(pat);
-				pat.forEach((bk) => {
+				this.SynthPatches.push(res);
+				res.pat.forEach((bk) => {
 						Names.push(bk.patchname);
 				});
 				resolve(Names);
@@ -76,19 +79,17 @@ module.exports = class Korg {
 		});
 	}
 
-	writeMemoryToSynth() {
-		return new Promise((resolve, reject) => {
-			if (this.SynthPatches == undefined) {
-				reject("No patches loaded");
-			} else {
-				try {
-					Patch.writeMemoryToSynth(this.SynthPatches, this.mOut, this.mChan);
-					resolve("Ok");
-				} catch (e) {
-					reject(e);
-				}
-			}
-		});
+	writeMemoryToSynth(postdat) {
+		var TypedPatch;
+		if (this.SynthPatches == undefined) {
+			return Promis.reject("No patches loaded");
+		}
+		if (postdat.bnk[0] == 'S') {
+			TypedPatch = new SinglePatch();
+		} else {
+			TypedPatch = new MultiPatch();
+		}
+		return TypedPatch.writeMemoryToSynth(this.SynthPatches, this.mIn, this.mOut, this.mChan, postdat);
 	}
 	
 	readMemoryFromDataURL(postdat) {
@@ -168,13 +169,13 @@ module.exports = class Korg {
 	 * checks, if the patch value is compatible with the bank (single / multi)
 	 * and returns an error message, if not
 	 */
-	_isCompatible(value, bank) {
+	_isCompatible(value, btp) {
 		if (value instanceof SinglePatch) {
-			if (bank >= 8)
-				return "Cannot move single patch to multi bank";
+			if (btp != 'S')
+				return "Cannot move single patch to combi bank";
 		} else {
-			if (bank < 8)
-				return "Cannot move multi patch to single bank";
+			if (btp != 'M')
+				return "Cannot move combi patch to single bank";
 		}
 		return "Ok";
 	}
@@ -185,45 +186,51 @@ module.exports = class Korg {
 		switch (id[0]) {
 			case 'c':
 				if (value != undefined) this._clipboard = value;
-				return this._clipboard;
+				else return this._clipboard;
 				break;
 			case 's':
-				bank = ButtonLabels.indexOf(id[1]);
-				ind = Number(id.substr(2));
+				bank = Patch.bankLetter2Index(id[1], id[2]);
+				ind = Number(id.substr(3));
 				if (value != undefined) {
-					let comp = this._isCompatible(value, bank);
+					let comp = this._isCompatible(value, id[1]);
 					if (comp == "Ok")
-						this.SynthPatches[bank][ind] = value;
+						this.SynthPatches[bank].pat[ind] = value;
 					else 
 						throw comp;
 				} else {
-					return this.SynthPatches[bank][ind];
+					return this.SynthPatches[bank].pat[ind];
 				}
 				break;
 			case 'f':
-				bank = ButtonLabels.indexOf(id[1]);
+				bank = Patch.bankLetter2Index(id[1], id[2]);
 				ind = Number(id.substr(2));
 				if (value != undefined) {
-					let comp = this._isCompatible(value, bank);
+					let comp = this._isCompatible(value, id[1]);
 					if (comp == "Ok")
-						this.FilePatches[bank][ind] = value;
+						this.FilePatches[bank].pat[ind] = value;
 					else 
 						throw comp;
 				} else {
-					return this.FilePatches[bank][ind];
+					return this.FilePatches[bank].pat[ind];
 				}
 				break;
 		}
 	}
 
+	/**
+	 * move a Patch in the banks
+	 * from and to are server strings from th ui.
+	 * The server string takes the form [sf][SM][A-N]\d{1,3} with the number in the range 0-127.
+	 * A special case is the clipboard, which has only "c" as the server string.
+	 */
 	move(from, to) {
 		if ((from[0] == 's' || to[0] == 's') && this.SynthPatches == undefined) return "SynthPatches undefined!";
 		if ((from[0] == 'f' || to[0] == 'f') && this.FilePatches == undefined) return "FilePatches undefined!";
 		try {
-		this._getOrSetVar(to, this._getOrSetVar(from));
-			return "Ok";
+			this._getOrSetVar(to, this._getOrSetVar(from));
+			return {ok:this._getOrSetVar(from).patchname};
 		} catch (e) {
-			return e.toString();
+			return {error:e.toString()};
 		}
 	}
 }

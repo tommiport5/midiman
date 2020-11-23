@@ -136,7 +136,7 @@ app.get('/swap',function (req,res) {
 
 handlePost('/move',function (req,res) {
 	res.setHeader('Content-Type', 'text/json; charset=utf-8');
-	res.end(JSON.stringify({result:getInstance(req.Mdl).move(req.from, req.to)}));
+	res.end(JSON.stringify(getInstance(req.Mdl).move(req.from, req.to)));
 });
 
 handlePost('/readPatch', (postdat, res) => {
@@ -222,7 +222,7 @@ handlePost('/readMemory', (postdat, res) => {
 
 handlePost('/writeMemory', (postdat, res) => {
 	try {
-		getInstance(postdat.Mdl).writeMemoryToSynth().then((arr) => {
+		getInstance(postdat.Mdl).writeMemoryToSynth(postdat).then((arr) => {
 			var result = {result:"Memory successfully written"};
 			res.setHeader('Content-Type', 'text/json; charset=utf-8');
 			res.setHeader("cache-control", "no-store");

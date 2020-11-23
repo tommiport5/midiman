@@ -41,13 +41,6 @@ class PatId {
 	get page() {return this._pnum < 64 ? 0 : 1;}
 	
 	/**
-	 * fromSelectButton
-	 * Creates an instance of PatId. Inverse to asButtonId
-	 */
-	static fromSelectButton(button_id) {
-	}
-	
-	/**
 	 * toString: a readable and parseable string representation
 	 */
 	toString() {
@@ -71,13 +64,15 @@ class PatId {
 	}
 	
 	/**
-	 *convertDndToServer
-	 * converts the drop source/target id to a server string
+	 * convertDndToServer
+	 * converts the drop source/target id to a server string.
+	 * The server string takes the form [sf][SM][A-N]\d{1,3} with the number in the range 0-127.
 	 */
 	convertDndToServer(target_id) {
 		let sv = target_id[0].toLowerCase();
+		sv += this.BankTypePrefix;
 		sv += this.BankLetter;
-		let num = Number(target_id.substr(1));
+		let num = Number(target_id.substr(2));
 		if (this.page) num += 60;	// patchnumbers on page 2 start at 60!
 		return sv + num;
 	}
@@ -188,6 +183,11 @@ class Navi {
 		this.displayNames(patid);
 	}
 	
+	/**
+	 * displayNames
+	 * displays the patchnames of the current page (identified by patid).
+	 * It also sets the drag'n'drop ids from the fields.
+	 */
 	displayNames(patid) {
 		var arr = this._pelem.querySelectorAll(".pname");
 		var ind = this._pelem.querySelectorAll(".pnh");
@@ -219,7 +219,8 @@ class Navi {
 			tabdat.forEach((dt) => {
 				arr[i].innerText = dt;
 				arr[i].setAttribute("draggable", true);
-				arr[i].id = this._buttonPrefix() + i;	
+				// build the id for the fields, we also need the bank type prefix to remeber it on the clipboard
+				arr[i].id = this._buttonPrefix() + patid.BankTypePrefix + i;	
 				arr[i++].setAttribute("ondragstart","dragStart(event)");
 			});
 		} 
@@ -233,15 +234,16 @@ class Navi {
 	/**
 	 * serverFromTarget
 	 * determines the patch id for the server from the curpage and the drop target (or drop source).
-	 * The current page member consists of the instance prefix(S or F), the bank letter (A - H) and the page number (0 or 1).
-	 * The drop targets/sources are "S" or "F" followed by the patch number 0-69. (Take care of the "decimal view"!)
-	 * The server string takes the form [sf][A-H]\d{1,3} with the number in the range 0-127.
+	 * The current page member is an object of class PatId.
+	 * The drop targets/sources are "S" or "F" followed by the BankTypePrefix and the 
+	 * relative patch number 0-69. (Take care of the "decimal view"!)
+	 * The server string takes the form [sf][SM][A-N]\d{1,3} with the number in the range 0-127.
 	 * A special case is the clipboard, which has only "c" as the server string.
 	 */
 	static serverFromTarget(tg) {
 		var sv;
 		var num;
-		switch (tg.charAt(0)) {
+		switch (tg[0]) {
 			case "c":
 				return "c";
 			case "S":
@@ -276,7 +278,8 @@ class Navi {
 
 
 var SynthPatches;
-var FilePatches; 
+var FilePatches;
+var ClipboardType;
 
 function forcequit() {
   var xhttp = new XMLHttpRequest();
@@ -422,8 +425,12 @@ function readMemoryBanks() {
 }
 
 function writeMemory() {
-	let Settings = {Mdl: Model};
-	document.getElementById("Result").innerText = 'Writing bank A. B and M to synth';
+	if (SynthPatches.curpage == undefined) {
+		document.getElementById("Result").innerText = 'No page for upload';
+		return;
+	}
+	let Settings = {Mdl: Model, bnk:SynthPatches.curpage.BankTypePrefix+SynthPatches.curpage.BankLetter};
+	document.getElementById("Result").innerText = 'Writing current bank to synth';
 	getJsonParam('http://localhost:' + port +'/writeMemory', JSON.stringify(Settings), (data) => {
 		document.getElementById("Result").innerText = data.result;
 	});
@@ -473,18 +480,19 @@ function drop(ev) {
 	let src_txt = ev.dataTransfer.getData("text");
 	let dest_id = ev.target.id;
 	let dest_txt = ev.target.text;
-	if (dest_id[0] == 'S' ) SynthPatches.set_pat(Number(dest_id.substr(2)), src_txt);
-	if (dest_id[0] == 'F' ) FilePatches.set_pat(Number(dest_id.substr(1)), src_txt);
 	let Settings = {
 		from: Navi.serverFromTarget(src_id),
 		to: Navi.serverFromTarget(dest_id),
 		Mdl: Model
 	};
 	getJsonParam('http://localhost:' + port +'/move', JSON.stringify(Settings), (answ) => {
-		if (answ.result == 'Ok') {
-			document.getElementById(dest_id).innerText = src_txt;
+		if (answ.ok) {
+			document.getElementById(dest_id).innerText = answ.ok;
+			if (dest_id[0] == 'S' ) SynthPatches.set_pat(Number(dest_id.substr(2)), src_txt);
+			if (dest_id[0] == 'F' ) FilePatches.set_pat(Number(dest_id.substr(2)), src_txt);
+			if (dest_id[0] == 'c' ) ClipboardType = dest_id[1];
 		} else {
-			document.getElementById("Result").innerText = answ.result;
+			document.getElementById("Result").innerText = answ.error;
 		}
 	});
 }
