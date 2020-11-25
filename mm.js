@@ -67,7 +67,7 @@ function handlePost(url, func) {
 		req.on('data', (data) => {
 			//console.log("data: " + data);
 			querydata += data;
-			if (querydata.length > 1e6) {
+			if (querydata.length > 1e8) {
 				querydata = "";
 				res.writeHead(413, {'Content-Type': 'text/plain'}).end();
 				req.connection.destroy();

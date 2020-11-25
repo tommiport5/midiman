@@ -56,6 +56,24 @@ module.exports = class Korg {
 			});
 		});
 	}
+		
+	/**
+	 * writePatchToData
+	 * The current role is MIDI-Server and we create a sysex file for download to the client.
+	 * The browser will store it there.
+	 */
+	writePatchToData() {
+		Sysex.trace = true;
+		return new Promise((resolve,reject) => {
+			if (this._clipboard == undefined) reject(new Error("Clipboard empty"));
+			try {
+				var DatArr = Patch.writePatchToBlob(this._clipboard);
+				resolve(DatArr);
+			} catch (e) {
+				reject(e);
+			}
+		});
+	}
 	
 	readMemoryFromSynth(postdat) {
 		var BankTypeObject;
@@ -107,10 +125,10 @@ module.exports = class Korg {
 				this.FilePatches = Patch.readMemoryFromBlob(DatArr);
 				this.FilePatches.forEach((bank) => {
 					let bk = [];
-					bank.forEach((pt) => {
+					bank.pat.forEach((pt) => {
 						bk.push(pt.patchname);
 					});
-					Names.push(bk);
+					Names.push({pat:bk, type:bank.btp});
 				});
 				resolve(Names);
 			} catch (e) {
@@ -129,24 +147,6 @@ module.exports = class Korg {
 			if (this.FilePatches == undefined) reject(new Error("No patches loaded"));
 			try {
 				var DatArr = Patch.writeMemoryToBlob(this.FilePatches);
-				resolve(DatArr);
-			} catch (e) {
-				reject(e);
-			}
-		});
-	}
-	
-	/**
-	 * writePatchToData
-	 * The current role is MIDI-Server and we create a sysex file for download to the client.
-	 * The browser will store it there.
-	 */
-	writePatchToData() {
-		Sysex.trace = true;
-		return new Promise((resolve,reject) => {
-			if (this._clipboard == undefined) reject(new Error("Clipboard empty"));
-			try {
-				var DatArr = Patch.writePatchToBlob(this._clipboard);
 				resolve(DatArr);
 			} catch (e) {
 				reject(e);
@@ -203,7 +203,7 @@ module.exports = class Korg {
 				break;
 			case 'f':
 				bank = Patch.bankLetter2Index(id[1], id[2]);
-				ind = Number(id.substr(2));
+				ind = Number(id.substr(3));
 				if (value != undefined) {
 					let comp = this._isCompatible(value, id[1]);
 					if (comp == "Ok")

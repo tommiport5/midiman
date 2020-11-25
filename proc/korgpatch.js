@@ -17,14 +17,13 @@ var NetMultiBanks = MultiBanks.replace(/ /g, '');
 var Combi = require('./sysex');
 var Sysex = Combi.kg;
 
-const _MR = 0x12;
-const _PPDR = 0x1C;
-const _CPDR = 0x1D;
 const _NOPP = 0x6e;
 const _DLC = 0x23;
 
-const _MBR = 0x33;
-const _MUD = 0x11;
+const _PPDR = 0x1C;
+const _PPD = 0x4c;
+const _CPDR = 0x1D;
+const _CPD = 0x4d;
 
 function delay(ms) {
 	return new Promise((resolve) => {
@@ -32,6 +31,12 @@ function delay(ms) {
 			resolve();
 		}, ms);
 	});
+}
+
+function _getMidiLength(iLng) {
+	var ml = Math.trunc(iLng/7)*8;
+	if (iLng%7) ml += iLng%7 +1;
+	return ml;
 }
 
 function _convertMidi2Int(midi) {
@@ -112,7 +117,7 @@ class KorgPatch {
 	 * i.e the index into the "patches" array
 	 */
 	static bankLetter2Index(btp, letter) {
-		if (btp = 'S')
+		if (btp == 'S')
 			return NetSingleBanks.indexOf(letter);
 		else
 			return NetMultiBanks.indexOf(letter) + NetSingleBanks.length;
@@ -172,6 +177,14 @@ class KorgPatch {
 		});
 	}
 	
+	static writePatchToBlob(pat) {
+		var dump = new Sysex(0, pat._CurParDump);	// the channel is just a placeholder
+		dump.raw = [0];
+		dump.append(_convertInt2Midi(pat.__sd));
+		let dat = pts.asBlob();
+		return Buffer.from(Uint8Array.from(dat));
+	}
+	
 	/**
 	 *readMemoryBankFromSynth
 	 * Reads one bank. Returns a thenable with the 'type' letter
@@ -208,17 +221,10 @@ class KorgPatch {
 	 */
 	writeMemoryToSynth(Mem, mIn, mOut, mChan, postdat) {
 		return new Promise((resolve, reject) => {
-			var bank = this.bankLetter2Ext(postdat.bnk[1]);
-			var dump = new Sysex(mChan, this._ParDump);
-			var ds = new Sysex;
-			var Ret = ds.listen(mIn);			
-			dump.raw = [2, 0x10|bank, 0];
-			var idata = [];
-			Mem[this.bankLetter2Index(postdat.bnk[1])].pat.forEach((pt)=> {
-				idata = idata.concat(pt.__sd);
-			});
-			dump.append(_convertInt2Midi(idata));
+			let dump = this.buildSysex(Mem, postdat.bnk[1], mChan);
 			dump.send(mOut);	
+			let ds = new Sysex;
+			let Ret = ds.listen(mIn);			
 			Ret.then((sx) => {
 				if (sx.command  == _DLC)
 					resolve("ok");
@@ -231,29 +237,39 @@ class KorgPatch {
 	static readMemoryFromBlob(fbuf) {
 		var Result = [];
 		var som;
-		var eom;
+		var btp;
+		var ml;
 		if (fbuf[0] != 0xf0) throw "Not a sysex file";
-		som = 1;
+		som = 0;
 		while (som < fbuf.length) {
 			let bank = [];
 			let patch;
-			for (let i=0; i<128; i++) {
-				eom = fbuf.indexOf(0xf7, som);
-				if (fbuf[som+5] == _SID) { //3 id, 1 prod, 1 dev, 1 cmd, 1 bnum, 1 pnum
-					patch = new KorgSinglePatch();
-				} else if (fbuf[som+5] == _MUD) {
-					patch = new KorgMultiPatch();
-				} else {
-					throw `Cmd not ${_SID} or ${_MUD}`;
-				}
-				patch.fillFromBlob(fbuf, som, eom);
-				bank.push(patch);
-				som = eom+2;
-				if (som >= fbuf.length) break;	//preemptive termination is ok
-				if (fbuf[eom+1] != 0xf0) 
-					throw "Syntax error in sysex file";
+			let iData;
+			if (fbuf[som+4] == _PPD) { //F0, 42, 3g, 50   Excl Header,  4C                      Function
+				btp = 'S';
+				ml = _getMidiLength(540*128);
+			} else if (fbuf[som+4] == _CPD) {
+				btp = 'M';
+				ml = _getMidiLength(448*128);
+			} else {
+				throw `Cmd 0x${fbuf[som+4].toString(16)} instead of 0x${_PPD.toString(16)} or 0x${_CPD.toString(16)}`;
 			}
-			Result.push(bank);
+			som += 8;		// TODO: some more checking
+			iData = _convertMidi2Int(fbuf.slice(som, som + ml));
+			for (let i=0; i<128; i++) {
+				if (btp == 'S')
+					patch = new KorgSinglePatch();
+				else 
+					patch = new KorgMultiPatch();
+				patch.__sd = iData.slice(i*patch.dlength, (i+1)*patch.dlength);
+				patch._complete = true;
+				bank.push(patch);
+			}
+			Result.push({pat:bank, type:btp});
+			som += ml+1;
+			if (som >= fbuf.length) break;	//preemptive termination is ok
+			if (fbuf[som] != 0xf0) 
+				throw "Syntax error in sysex file";
 		}
 		return Result;
 	}
@@ -267,19 +283,36 @@ class KorgPatch {
 	 */
 	static writeMemoryToBlob(datarr) {
 		var dat = [];
+		var i = 0;
+		var BankTypeObject;
 		datarr.forEach((bank) => {
-			bank.forEach((pt)=> {
-				let pts = pt.buildSysex(pts);
-				dat = dat.concat(pts.asBlob());
-			});
+			if (bank.type == 'S') {
+				BankTypeObject = new KorgSinglePatch();
+			} else {
+				BankTypeObject = new KorgMultiPatch();
+			}			
+			let BankDump = BankTypeObject.buildSysex(datarr, BankTypeObject.index2BankLetter(i), 0);
+			dat = dat.concat(BankDump.asBlob());
+			i++;
 		});
 		return Buffer.from(Uint8Array.from(dat));
 	}
 	
-	static writePatchToBlob(pat) {
-		let pts = pat.buildSysex();
-		let dat = pts.asBlob();
-		return Buffer.from(Uint8Array.from(dat));
+	/**
+	 * buildSysex
+	 * will build a Sysex from a whole bank.
+	 * Same code will work for both descendants.
+	 */
+	buildSysex(Mem, Bank, mChan) {
+		var bank = this.bankLetter2Ext(Bank);	
+		var dump = new Sysex(mChan, this._ParDump);
+		dump.raw = [2, 0x10|bank, 0];
+		var idata = [];
+		Mem[this.bankLetter2Index(Bank)].pat.forEach((pt)=> {
+			idata = idata.concat(pt.__sd);
+		});
+		dump.append(_convertInt2Midi(idata));
+		return dump;
 	}
 }
 	
@@ -287,17 +320,17 @@ class KorgPatch {
 class KorgSinglePatch extends KorgPatch {
 	constructor () {
 		super();
+		this.dlength = 540;
 		this._CurParDumpRequest = 0x10;
 		this._CurParDump = 0x40;
-		this._ParDumpRequest = 0x1c;
-		this._ParDump = 0x4c;
+		this._ParDumpRequest = _PPDR;
+		this._ParDump = _PPD;
 	}
 	
 	fillFromSysex(Result, idata) {
-		const dlength = 540; 
 		for (let i=0; i <128; i++) {
 			Result[i] = new KorgSinglePatch();
-			Result[i].__sd = idata.slice(i*dlength,(i+1)*dlength);
+			Result[i].__sd = idata.slice(i*this.dlength,(i+1)*this.dlength);
 			if (Array.isArray(Result[i].__sd)) Result[i]._complete = true;
 			else Result[i].__sd = Uint8Array.from("Transmission Error");
 		}
@@ -321,47 +354,33 @@ class KorgSinglePatch extends KorgPatch {
 		return NetSingleBanks.indexOf(letter);
 	}
 	
-	fillFromBlob(fbuf, som, eom) {
-		this.__A = fbuf.slice(som+8,som+136);	
-		this.__B = fbuf.slice(som+136, eom);
-		this._complete = true;
-	}
-
-	buildSysex(bnum, pnum) {
-		let pts = new Sysex(this.mChan, _SID);
-		if (!bnum)
-			pts.append([0,0x40]);
-		else
-			pts.append([bnum, pnum]);
-		pts.append(this.__A);
-		pts.append(this.__B);
-		return pts;
+	index2BankLetter(i) {
+		return NetSingleBanks[i];
 	}
 	
+	fillFromBlob(fbuf, som) {
+		this.__sd = fbuf.slice(som, som+this.dlength);
+		this._complete = true;
+	}
 }
 
 class KorgMultiPatch extends KorgPatch {
 	constructor () {
 		super();
+		this.dlength = 448;
 		this._CurParDumpRequest = 0x19;
 		this._CurParDump = 0x49;
-		this._ParDumpRequest = 0x1d;
-		this._ParDump = 0x4d;
+		this._ParDumpRequest = _CPDR;
+		this._ParDump = _CPD;
 	}
 	
 	fillFromSysex(Result, idata) {
-		const dlength = 448; 
 		for (let i=0; i <128; i++) {
 			Result[i] = new KorgMultiPatch();
-			Result[i].__sd = idata.slice(i*dlength,(i+1)*dlength);
+			Result[i].__sd = idata.slice(i*this.dlength,(i+1)*this.dlength);
 			if (Array.isArray(Result[i].__sd)) Result[i]._complete = true;
 			else Result[i].__sd = Uint8Array.from("Transmission Error");
 		}
-	}
-	
-	fillFromBlob(fbuf, som, eom) {
-		this.__C = fbuf.slice(som+8, eom);
-		this._complete = true;
 	}
 
 	/**
@@ -381,15 +400,13 @@ class KorgMultiPatch extends KorgPatch {
 	bankLetter2Index(letter) {
 		return NetMultiBanks.indexOf(letter) + NetSingleBanks.length;
 	}
+	index2BankLetter(i) {
+		return NetMultiBanks[i-NetSingleBanks.length];
+	}	
 	
-	buildSysex(bnum, pnum) {
-		let pts = new Sysex(this.mChan, _MUD);
-		if (!bnum)
-			pts.append([0,0]);
-		else
-			pts.append([bnum, pnum]);
-		pts.append(this.__C);
-		return pts;
+	fillFromBlob(fbuf, som) {
+		this.__sd = fbuf.slice(som, som+this.dlength);
+		this._complete = true;
 	}
 }
 
