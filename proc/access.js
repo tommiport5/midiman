@@ -18,10 +18,6 @@ const Base64 = require('Base64');
 
 var theInstances = [];
 
-// copy from accessui.js
-const ButtonLabels = "ABCDEFGHM";
-const SingleLimit = 8;
-
 module.exports = class Access {
 	constructor(MIn, MOut, MChan) {
 		this.mIn = MIn;
@@ -40,9 +36,9 @@ module.exports = class Access {
 	}
 	
 	readCurrentPatch() {
-		var curpat = new SinglePatch (this.mIn, this.mOut, this.mChan);
+		var curpat = new SinglePatch ();
 		return new Promise((resolve,reject) => {
-			curpat.readFromSynth().then((ign) => {
+			curpat.readFromSynth(this.mIn, this.mChan).then((ign) => {
 				this._clipboard = curpat;
 				resolve(curpat);
 			}).catch ((e) => {
@@ -62,15 +58,21 @@ module.exports = class Access {
 	}
 	
 	readMemoryFromSynth(postdat) {
-		if (postdat.Bank == 0) this.SynthPatches = [];
+		var BankTypeObject;
+		if (postdat.type == 'S') {
+			if (postdat.Bank == 0) this.SynthPatches = [];
+			BankTypeObject = new SinglePatch();
+		} else {
+			BankTypeObject = new MultiPatch();
+		}			
 		return new Promise((resolve,reject) => {
-			Patch.readMemoryBankFromSynth(this.mIn, this.mOut, this.mChan, postdat).then((pat) => {
+			BankTypeObject.readMemoryBankFromSynth(this.mIn, this.mOut, this.mChan, postdat).then((res) => {
 				let Names = [];
-				this.SynthPatches.push(pat);
-				pat.forEach((bk) => {
+				this.SynthPatches.push(res);
+				res.pat.forEach((bk) => {
 						Names.push(bk.patchname);
 				});
-				resolve(Names);
+				resolve({pat:Names, type:res.type});
 			}).catch ((err) => {
 				reject(err);
 			});
@@ -83,7 +85,7 @@ module.exports = class Access {
 				reject("No patches loaded");
 			} else {
 				try {
-					Patch.writeMemoryToSynth(this.SynthPatches, this.mOut, this.mChan);
+					Patch.writeMemoryBankToSynth(this.SynthPatches, this.mOut, this.mChan, postdat);
 					resolve("Ok");
 				} catch (e) {
 					reject(e);
@@ -107,13 +109,10 @@ module.exports = class Access {
 				this.FilePatches = Patch.readMemoryFromBlob(DatArr);
 				this.FilePatches.forEach((bank) => {
 					let bk = [];
-					let typ;
-					if (bank < SingleLimit) typ = 'S';
-					else typ = 'M';
-					bank.forEach((pt) => {
+					bank.pat.forEach((pt) => {
 						bk.push(pt.patchname);
 					});
-					Names.push({pat:bk, type:typ});
+					Names.push({pat:bk, type:bank.type});
 				});
 				resolve(Names);
 			} catch (e) {
@@ -167,16 +166,16 @@ module.exports = class Access {
 	}
 	
 	/**
-	 * _isCompatible(value, bank)
+	 * _isCompatible(value, banktype)
 	 * checks, if the patch value is compatible with the bank (single / multi)
 	 * and returns an error message, if not
 	 */
-	_isCompatible(value, bank) {
+	_isCompatible(value, btp) {
 		if (value instanceof SinglePatch) {
-			if (bank >= SingleLimit)
+			if (btp != 'S')
 				return "Cannot move single patch to multi bank";
 		} else {
-			if (bank < SingleLimit)
+			if (btp != 'M')
 				return "Cannot move multi patch to single bank";
 		}
 		return "Ok";
@@ -188,32 +187,32 @@ module.exports = class Access {
 		switch (id[0]) {
 			case 'c':
 				if (value != undefined) this._clipboard = value;
-				return this._clipboard;
+				else return this._clipboard;
 				break;
 			case 's':
-				bank = ButtonLabels.indexOf(id[1]);
-				ind = Number(id.substr(2));
+				bank = Patch.bankLetter2Index(id[1], id[2]);
+				ind = Number(id.substr(3));
 				if (value != undefined) {
-					let comp = this._isCompatible(value, bank);
+					let comp = this._isCompatible(value, id[1]);
 					if (comp == "Ok")
-						this.SynthPatches[bank][ind] = value;
+						this.SynthPatches[bank].pat[ind] = value;
 					else 
 						throw comp;
 				} else {
-					return this.SynthPatches[bank][ind];
+					return this.SynthPatches[bank].pat[ind];
 				}
 				break;
 			case 'f':
-				bank = ButtonLabels.indexOf(id[1]);
-				ind = Number(id.substr(2));
+				bank = Patch.bankLetter2Index(id[1], id[2]);
+				ind = Number(id.substr(3));
 				if (value != undefined) {
-					let comp = this._isCompatible(value, bank);
+					let comp = this._isCompatible(value, id[1]);
 					if (comp == "Ok")
-						this.FilePatches[bank][ind] = value;
+						this.FilePatches[bank].pat[ind] = value;
 					else 
 						throw comp;
 				} else {
-					return this.FilePatches[bank][ind];
+					return this.FilePatches[bank].pat[ind];
 				}
 				break;
 		}

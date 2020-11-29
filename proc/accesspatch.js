@@ -17,9 +17,9 @@ const _MBR = 0x33;
 const _SID = 0x10;
 const _MUD = 0x11;
 
-const SingleWriteBanks ="AB";
-const MultiWriteBanks = "M"
-
+const NetSingleBanks ="ABCDEFGH";
+const NetMultiBanks = "M";
+const WritableBanks = [0,1,8];
 
 function delay(ms) {
 	return new Promise((resolve) => {
@@ -30,10 +30,7 @@ function delay(ms) {
 }
 
 class AccessPatch {
-	constructor(MIn, MOut, MChan) {
-		this.mIn = MIn;
-		this.mOut = MOut;
-		this.mChan = MChan;
+	constructor() {
 		this._complete = false;
 	}
 	
@@ -42,15 +39,27 @@ class AccessPatch {
 	}
 	
 	/**
+	 * bankLetter2Index
+	 * seems like overkill here, but is useful with something like the Triton
+	 */
+	static bankLetter2Index(btp, letter) {
+		if (btp == 'S')
+			return NetSingleBanks.indexOf(letter);
+		else
+			return NetMultiBanks.indexOf(letter) + NetSingleBanks.length;
+	}
+	
+	
+	/**
 	 * readFromSynth
 	 * reads the current (single) edit patch into this object
 	 */
-	readFromSynth() {
+	readFromSynth(mIn, mChan) {
 		return new Promise((resolve,reject) => {
 			try {
-				var rd = new Sysex(this.mChan, _SIR);
+				var rd = new Sysex(mChan, _SIR);
 				var ds = new Sysex();
-				var Ret = ds.listen(this.mIn);
+				var Ret = ds.listen(mIn);
 				rd.append([0,0x40]);
 				rd.send(this.mOut);
 				Ret.then((sx) => {
@@ -72,14 +81,12 @@ class AccessPatch {
 	 * writes this patch into the current edit patch on the synth
 	 */
 	writeToSynth(mOut, mChan) {
-		this.mOut = mOut;
-		this.mChan = mChan;		// override the stored values
 		// Sysex.trace = true;
 		if (!this._complete) {
 			return Promise.reject("no patch");
 		}
 		try {
-			var dump = this.buildSysex(0, 0x40);	//the program number is ignored for the multi request, 
+			var dump = this.buildSysex(0, 0x40, mChan);	//the program number is ignored for the multi request, 
 													// so this works for multi and single
 			dump.send(mOut);
 			return Promise.resolve("ok");
@@ -95,7 +102,8 @@ class AccessPatch {
 	 * reads the internal memory and returns an array of AccessPatch objects
 	 * cannot read all banks in one go, because the browser gets unpatient :-(
 	 */
-	static async readMemoryBankFromSynth(mIn, mOut, mChan, postdat) {
+	async readMemoryBankFromSynth(mIn, mOut, mChan, postdat) {
+		//Sysex.trace = true;
 		try {
 			var brq;
 			var resp;
@@ -106,7 +114,7 @@ class AccessPatch {
 				brq.append([postdat.Bank+1]);
 			} else {
 				brq = new Sysex(mChan, _MBR);
-				brq.append([1]);
+				brq.append([postdat.Bank+1]);
 			}
 			brq.send(mOut);
 			for (let prog = 0; prog < 128; prog++) {
@@ -121,17 +129,33 @@ class AccessPatch {
 				Result[prog].fillFromSysex(sx);
 			}
 			await delay(1000);
-			return Result;
+			return {pat:Result,type:postdat.type};
 		} catch(e) {
 			console.log('exception occured in readMemory: ' + e);
 			throw e;
 		}			
 	}
 
+	/**
+	 * writeMemoryToSynth
+	 * writes all the banks in Mem to the Synth.
+	 */
+	static writeMemoryBankToSynth(Mem, mOut, mChan, postdat) {
+		let pnum = 0;
+		let i = (NetSingleBanks+NetMultiBanks).indexOf(postdat.bnk[1]);
+		if (!WritableBanks.includes(i)) throw `Bank ${postdat.bnk[1]} is not writable`;
+		Mem[i].pat.forEach((pt)=> {
+			let pts = pt.buildSysex(i+1, pnum, mChan);
+			pts.send(mOut);
+			pnum++;
+		});
+	}
+	
 	static readMemoryFromBlob(fbuf) {
 		var Result = [];
 		var som;
 		var eom;
+		var btp;
 		if (fbuf[0] != 0xf0) throw "Not a sysex file";
 		som = 1;
 		while (som < fbuf.length) {
@@ -141,8 +165,10 @@ class AccessPatch {
 				eom = fbuf.indexOf(0xf7, som);
 				if (fbuf[som+5] == _SID) { //3 id, 1 prod, 1 dev, 1 cmd, 1 bnum, 1 pnum
 					patch = new AccessSinglePatch();
+					btp = 'S';
 				} else if (fbuf[som+5] == _MUD) {
 					patch = new AccessMultiPatch();
+					btp = 'M';
 				} else {
 					throw `Cmd not ${_SID} or ${_MUD}`;
 				}
@@ -153,7 +179,7 @@ class AccessPatch {
 				if (fbuf[eom+1] != 0xf0) 
 					throw "Syntax error in sysex file";
 			}
-			Result.push(bank);
+			Result.push({pat:bank, type:btp});
 		}
 		return Result;
 	}
@@ -171,8 +197,8 @@ class AccessPatch {
 		let bnum = 1;
 		datarr.forEach((bank) => {
 			let pnum = 0;
-			bank.forEach((pt)=> {
-				let pts = pt.buildSysex(bnum, pnum);
+			bank.pat.forEach((pt)=> {
+				let pts = pt.buildSysex(bnum, pnum, 0); 	// make the channel always 0 on the stored blob
 				dat = dat.concat(pts.asBlob());
 				pnum++;
 			});
@@ -182,44 +208,16 @@ class AccessPatch {
 	}
 	
 	static writePatchToBlob(pat) {
-		let pts = pat.buildSysex();
+		let pts = pat.buildSysex(0, 0, 0);
 		let dat = pts.asBlob();
 		return Buffer.from(Uint8Array.from(dat));
 	}
 	
-	/**
-	 * writeMemoryToSynth
-	 * writes all the banks in Mem to the Synth.
-	 */
-	static writeMemoryToSynth(Mem, mOut, mChan) {
-		for (let i=0; i< SingleWriteBanks.length; i++) {
-			if (SingleWriteBanks[i] == ' ') continue;
-			let pnum = 0;
-			Mem[i].forEach((pt)=> {
-				pt.mOut = mOut;
-				pt.mChan = mChan;		// override the stored values
-				let pts = pt.buildSysex(i+1, pnum);
-				pts.send(mOut);
-				pnum++;
-			});
-		}
-		for (let i=0; i< MultiWriteBanks.length; i++) {
-			if (MultiWriteBanks[i] == ' ') continue;
-			let pnum = 0;
-			Mem[i].forEach((pt)=> {
-				pt.mOut = mOut;
-				pt.mChan = mChan;		// override the stored values
-				let pts = pt.buildSysex(i+1, pnum);
-				pts.send(mOut);
-				pnum++;
-			});
-		}
-	}
 }
 
 class AccessSinglePatch extends AccessPatch {
-	constructor (MIn, MOut, MChan) {
-		super(MIn, MOut, MChan);
+	constructor () {
+		super();
 	}
 	get patchname() {
 		var res = "";
@@ -236,20 +234,20 @@ class AccessSinglePatch extends AccessPatch {
 		let add = sx.raw.slice(0,2);
 		let sxd = sx.raw.slice(2);
 		this.__A = sxd.slice(0,128);
-		this.__B = sxd.slice(128);				// I don't know, if this would be the right place
+		this.__B = sxd.slice(128);	
 		this._complete = true;
 	}
 	
 	fillFromBlob(fbuf, som, eom) {
 		this.__A = fbuf.slice(som+8,som+136);	
-		this.__B = fbuf.slice(som+136, eom-1);   	// I don't know, if this is the right place
+		this.__B = fbuf.slice(som+136, eom-1);   	// must remove checksum, like SysEx._parseTelegram would
 		this._complete = true;
 	}
 
-	buildSysex(bnum, pnum) {
-		let pts = new Sysex(this.mChan, _SID);
+	buildSysex(bnum, pnum, mChan) {
+		let pts = new Sysex(mChan, _SID);
 		if (!bnum)
-			pts.append([0,0x40]);
+			pts.append([0,0x40]);	// current patch
 		else
 			pts.append([bnum, pnum]);
 		pts.append(this.__A);
@@ -259,8 +257,8 @@ class AccessSinglePatch extends AccessPatch {
 }
 
 class AccessMultiPatch extends AccessPatch {
-	constructor (MIn, MOut, MChan) {
-		super(MIn, MOut, MChan);
+	constructor () {
+		super();
 	}
 	get patchname() {
 		var res = "";
@@ -276,16 +274,16 @@ class AccessMultiPatch extends AccessPatch {
 	}
 	
 	fillFromBlob(fbuf, som, eom) {
-		this.__C = fbuf.slice(som+8, eom);
+		this.__C = fbuf.slice(som+8, eom-1); // must remove checksum, like SysEx._parseTelegram would
 		this._complete = true;
 	}
 	
-	buildSysex(bnum, pnum) {
-		let pts = new Sysex(this.mChan, _MUD);
+	buildSysex(bnum, pnum, mChan) {
+		let pts = new Sysex(mChan, _MUD);
 		if (!bnum)
 			pts.append([0,0]);
 		else
-			pts.append([bnum, pnum]);
+			pts.append([1, pnum]);	// access has only one multi bank
 		pts.append(this.__C);
 		return pts;
 	}

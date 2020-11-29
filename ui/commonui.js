@@ -396,12 +396,12 @@ function readMemoryBank(i, typ, followup) {
 	} else {
 		ctrl = MultiReadBanks;
 	}
-	document.getElementById("Result").innerText = `Receiving synth memory ${ButtonLabels[i]}`;
+	document.getElementById("Result").innerText = `Receiving synth memory ${ctrl[i]}`;
 	try {
 		getJsonParam('http://localhost:' + port +'/readMemory', JSON.stringify(Settings), (data) => {
 			document.getElementById("Result").innerText = data.result;
 			if (data.names) {
-				SynthPatches.push_pat({pat: data.names, type: typ});
+				SynthPatches.push_pat(data.names);
 			}
 			do {
 				i++;

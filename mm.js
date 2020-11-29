@@ -202,8 +202,8 @@ handlePost('/selIfc', (postdat, res) => {
 
 handlePost('/readMemory', (postdat, res) => {
 	try {
-		getInstance(postdat.Mdl).readMemoryFromSynth(postdat).then((arr) => {
-			var result = {result:"Successfully read memory", names:arr};
+		getInstance(postdat.Mdl).readMemoryFromSynth(postdat).then((answ) => {
+			var result = {result:"Successfully read memory", names:answ};
 			res.setHeader('Content-Type', 'text/json; charset=utf-8');
 			res.setHeader("cache-control", "no-store");
 			res.end(JSON.stringify(result));

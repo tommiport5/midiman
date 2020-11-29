@@ -93,6 +93,9 @@ function _handleResponse(Ret, mIn) {
 }
 
 class KorgPatch {
+	constructor() {
+		this._complete = false;
+	}
 	
 	get complete() {
 		return this._complete;
@@ -219,7 +222,7 @@ class KorgPatch {
 	 * writeMemoryToSynth
 	 * writes the current bank in Mem to the Synth.
 	 */
-	writeMemoryToSynth(Mem, mIn, mOut, mChan, postdat) {
+	writeMemoryBankToSynth(Mem, mIn, mOut, mChan, postdat) {
 		return new Promise((resolve, reject) => {
 			let dump = this.buildSysex(Mem, postdat.bnk[1], mChan);
 			dump.send(mOut);	

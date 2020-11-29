@@ -90,7 +90,7 @@ module.exports = class Korg {
 				res.pat.forEach((bk) => {
 						Names.push(bk.patchname);
 				});
-				resolve(Names);
+				resolve({pat:Names, type: res.type});
 			}).catch ((err) => {
 				reject(err);
 			});
@@ -107,7 +107,7 @@ module.exports = class Korg {
 		} else {
 			TypedPatch = new MultiPatch();
 		}
-		return TypedPatch.writeMemoryToSynth(this.SynthPatches, this.mIn, this.mOut, this.mChan, postdat);
+		return TypedPatch.writeMemoryBankToSynth(this.SynthPatches, this.mIn, this.mOut, this.mChan, postdat);
 	}
 	
 	readMemoryFromDataURL(postdat) {
@@ -128,7 +128,7 @@ module.exports = class Korg {
 					bank.pat.forEach((pt) => {
 						bk.push(pt.patchname);
 					});
-					Names.push({pat:bk, type:bank.btp});
+					Names.push({pat:bk, type:bank.type});
 				});
 				resolve(Names);
 			} catch (e) {
