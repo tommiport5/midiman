@@ -57,9 +57,10 @@ table {
 }
 .bank-label {
 	writing-mode: vertical-rl;
-	transform: rotate(180deg);
+	/*transform: rotate(0.5turn);*/
+	direction:rtl;
 	font-weight: bold;
-	min-width: 10px;
+	/*min-width: 10px;*/
 }
 
 .framed, .clipboard {

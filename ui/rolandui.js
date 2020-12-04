@@ -182,10 +182,12 @@ function drop(ev) {
 		Mdl: Model
 	};
 	getJsonParam('http://localhost:' + port +'/move', JSON.stringify(Settings), (answ) => {
-		if (answ.result == 'Ok') {
-			document.getElementById(dest_id).innerText = src_txt;
+		if (answ.ok) {
+			document.getElementById(dest_id).innerText = answ.ok;
+			if (dest_id[0] == 'S' ) SynthPatches.set_pat(Number(dest_id.substr(2)), src_txt);
+			if (dest_id[0] == 'F' ) FilePatches.set_pat(Number(dest_id.substr(2)), src_txt);
 		} else {
-			document.getElementById("Result").innerText = answ.result;
+			document.getElementById("Result").innerText = answ.error;
 		}
 	});
 }
@@ -253,11 +255,10 @@ function displayForm() {
 	});
 	document.getElementById("readPatch").addEventListener('click',readCurrentPatch);
 	//document.getElementById("selInterface").addEventListener('click',selectInterface);
-	//document.getElementById("writepatch").addEventListener('click',);
 	document.getElementById("readMem").addEventListener('click',readMemory);
 	document.getElementById("writeMem").addEventListener('click',writeMemory);
 	document.getElementById("readFile").addEventListener('click',readFile);
-	document.getElementById("writeFile").href = "http://localhost:10532/writeFile.syx?Mdl=" + Model;
+	//document.getElementById("writeFile").href = "http://localhost:10532/writeFile.syx?Mdl=" + Model;
 	document.getElementById("swapbutton").addEventListener('click',swap);
 	prepareDnd();
 }

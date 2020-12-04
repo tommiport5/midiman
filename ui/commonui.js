@@ -538,12 +538,20 @@ function displayForm() {
 	});
 	document.getElementById("readpatch").addEventListener('click',readCurrentPatch);
 	document.getElementById("writepatch").addEventListener('click',writeCurrentPatch);
-	//document.getElementById("selInterface").addEventListener('click',selectInterface);
 	document.getElementById("readMem").addEventListener('click',readMemoryBanks);
 	document.getElementById("writeMem").addEventListener('click',writeMemory);
 	document.getElementById("readFile").addEventListener('click',readFile);
 	document.getElementById("swapbutton").addEventListener('click',swap);
+	document.getElementById("test").addEventListener('click',test);
 }
+
+function test() {
+	let Settings = {Mdl: Model};
+	getJsonParam('http://localhost:' + port +'/test', JSON.stringify(Settings), (data) => {
+		document.getElementById("Result").innerText = data.result;
+	});
+}
+
 
 window.addEventListener("load", displayForm);
 window.addEventListener("load", prepareSwitchTable);

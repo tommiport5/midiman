@@ -207,8 +207,12 @@ module.exports = class Roland {
 	move(from, to) {
 		if ((from[0] == 's' || to[0] == 's') && this.SynthPatches == undefined) return "SynthPatches undefined!";
 		if ((from[0] == 'f' || to[0] == 'f') && this.FilePatches == undefined) return "FilePatches undefined!";
-		this._getOrSetVar(to, this._getOrSetVar(from));
-		return "Ok";
+		try {
+			this._getOrSetVar(to, this._getOrSetVar(from));
+			return {ok:this._getOrSetVar(from).patchname};
+		} catch (e) {
+			return {error:e.toString()};
+		}
 	}
 }
 

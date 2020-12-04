@@ -131,7 +131,7 @@ class KorgPatch {
 	 * reads the current (single) edit patch into this object
 	 */
 	readFromSynth(mIn, mOut, mChan) {
-		Sysex.trace = true;
+		//Sysex.trace = true;
 		return new Promise((resolve,reject) => {
 			var rd = new Sysex(mChan, this._CurParDumpRequest);
 			var ds = new Sysex();
@@ -184,7 +184,7 @@ class KorgPatch {
 		var dump = new Sysex(0, pat._CurParDump);	// the channel is just a placeholder
 		dump.raw = [0];
 		dump.append(_convertInt2Midi(pat.__sd));
-		let dat = pts.asBlob();
+		let dat = dump.asBlob();
 		return Buffer.from(Uint8Array.from(dat));
 	}
 	
@@ -225,9 +225,9 @@ class KorgPatch {
 	writeMemoryBankToSynth(Mem, mIn, mOut, mChan, postdat) {
 		return new Promise((resolve, reject) => {
 			let dump = this.buildSysex(Mem, postdat.bnk[1], mChan);
-			dump.send(mOut);	
 			let ds = new Sysex;
 			let Ret = ds.listen(mIn);			
+			dump.send(mOut);	
 			Ret.then((sx) => {
 				if (sx.command  == _DLC)
 					resolve("ok");
@@ -316,6 +316,32 @@ class KorgPatch {
 		});
 		dump.append(_convertInt2Midi(idata));
 		return dump;
+	}
+	
+	test(mIn, mOut, mChan, postdat) {
+		Sysex.trace = true;
+		return new Promise((resolve,reject) => {
+			// let iData = _convertMidi2Int(_convertInt2Midi(this.__sd));
+			let save = this.__sd;
+			this.writeToSynth(mIn, mOut, mChan)
+				.then(() => {
+					return this.readFromSynth(mIn, mOut, mChan);
+				})
+				.then(() => {
+					let rep;
+					for (let ind=0; ind < save.length; ind ++) {
+						if (this.__sd[ind] != save[ind]) {
+							console.log(`${ind}: 0x${save[ind].toString(16)} -> 0x${this.__sd[ind].toString(16)}`);
+							if (!rep) rep = [ind, save[ind], this.__sd[ind]];
+						}
+					}
+					if (!rep) resolve("All bytes correctly converted to midi and back");
+					else resolve(`Byte ${rep[0]} changed from 0x${rep[1].toString(16)} to 0x${rep[2].toString(16)}`);
+				})
+				.catch((e) => {
+					reject(e);
+				});
+		});
 	}
 }
 	

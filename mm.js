@@ -287,6 +287,27 @@ app.get('/writePatch.syx', (req, res) => {
 	});
 });
 
+handlePost('/test', (postdat, res) => {
+	try {
+		getInstance(postdat.Mdl).test(postdat).then((answ) => {
+			var result = {result:answ};
+			res.setHeader('Content-Type', 'text/json; charset=utf-8');
+			res.setHeader("cache-control", "no-store");
+			res.end(JSON.stringify(result));
+		}).catch((err) =>{
+			let Msg = 'Could not perform test, ' + err;
+			res.setHeader('Content-Type', 'text/json; charset=utf-8');
+			res.setHeader("cache-control", "no-store");
+			res.end('{"result":"' + Msg + '"}');
+		});
+	} catch(e) {
+		res.setHeader('Content-Type', 'text/json; charset=utf-8');
+		res.setHeader("cache-control", "no-store");
+		res.end('{"result":"' + e + '"}');
+	}	
+});
+
+
 /**
  * SynthPage.html
  * The request for this page will not only deliver the page for the Mdl type synth

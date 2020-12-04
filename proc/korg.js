@@ -233,6 +233,11 @@ module.exports = class Korg {
 			return {error:e.toString()};
 		}
 	}
+	
+	test(postdat) {
+		if (this._clipboard == undefined) return Promise.reject(new Error("Clipboard empty"));
+		else return this._clipboard.test(this.mIn, this.mOut, this.mChan, postdat);
+	}
 }
 
 

@@ -428,6 +428,12 @@ module.exports = class RolandPatch {
 		return Buffer.from(Uint8Array.from(dat));
 	}
 	
+	/**
+	 * writePatchToBlob
+	 * writes the curent clipboard patch to the synth.
+	 * Hint for testing: patch does not fit into one Midi telegram, which is limited to 256 bytes on the d50.
+	 * So there is no one to one relation between these midi data and telegrams from writeMemoryToBlob.
+	 */
 	static writePatchToBlob(datarr) {
 		var dat = [];
 		var Accu = {Pts: [datarr, undefined],

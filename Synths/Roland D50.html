@@ -102,7 +102,7 @@ Midi Channel
 <div class="bni">
 <button type="button" id="swapbutton">Swap</button><label for="c">Clipboard</label><p class="clipboard" id="c" ondragstart="dragStart(event)" draggable=true ondrop="drop(event)" ondragover="allowDrop(event)"></p>
 <button type="button" class="nav_item" id="readPatch">Read Current Patch</button>
-<a href="http://localhost:10532/writePatch.syx" class="button" download>Write Patch To File</a>
+<a href="http://localhost:10532/writePatch.syx?Mdl=Roland+D50" class="button" download>Write Patch To File</a>
 </div>
 <div class="framed" id="file">
 <h1>File</h1>
@@ -111,7 +111,7 @@ Midi Channel
 <label for="fname">File to Read (*.syx)</label>
 <input id="fname" name="fname" type="file">
 <button type="button" id="readFile">Read File</button>
-<a class="button" id="writeFile" download>Write File</a>
+<a class="button" href="http://localhost:10532/writeFile.syx?Mdl=Roland+D50" download>Write File</a>
 </form>
 </span>
 <table ondrop="drop(event)" ondragover="allowDrop(event)">
