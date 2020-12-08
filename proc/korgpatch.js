@@ -20,10 +20,14 @@ var Sysex = Combi.kg;
 const _NOPP = 0x6e;
 const _DLC = 0x23;
 
+const _MR = 0x12;
+const _MD = 0x42;
 const _PPDR = 0x1C;
 const _PPD = 0x4c;
+const _CPPD = 0x40;
 const _CPDR = 0x1D;
 const _CPD = 0x4d;
+const _CCPD = 0x49;
 
 function delay(ms) {
 	return new Promise((resolve) => {
@@ -114,6 +118,24 @@ class KorgPatch {
 		return res;
 	}
 	
+	static getDeviceMode(mIn, mOut, mChan) {
+		return new Promise((resolve, reject) =>  {
+			var mr = new Sysex(mChan, _MR);
+			var ds = new Sysex();
+			var Ret = ds.listen(mIn);
+			mr.send(mOut);
+			Ret.then((sx) => {
+				if (sx.command  == _MD)
+					resolve(sx.raw);
+				else
+					reject(`Received ${sx.command.toString(16)} istead of ${_MD.toString(16)}`);
+			})
+			.catch ((e) => {
+				reject(e);
+			});
+		});
+	}		
+	
 	/**
 	 * bankLetter2Index
 	 * Converts the bank letter of a bank of type btp into the internal address,
@@ -142,6 +164,7 @@ class KorgPatch {
 				if (sx.raw.shift()) console.log("Got MOSS patch instead of PCM patch");
 				this.__sd = _convertMidi2Int(sx.raw);
 				this._complete = true;
+				this.sanitize();
 				resolve("ok");
 			}).catch((e) =>{
 				console.log('exception occured in read from synth: ' + e);
@@ -180,13 +203,33 @@ class KorgPatch {
 		});
 	}
 	
-	static writePatchToBlob(pat) {
-		var dump = new Sysex(0, pat._CurParDump);	// the channel is just a placeholder
+	writeToBlob() {
+		var dump = new Sysex(0, this._CurParDump);	// the channel is just a placeholder
 		dump.raw = [0];
-		dump.append(_convertInt2Midi(pat.__sd));
+		dump.append(_convertInt2Midi(this.__sd));
 		let dat = dump.asBlob();
 		return Buffer.from(Uint8Array.from(dat));
 	}
+	
+	/**
+	 * readFromBlob
+	 * Reads a program or combi patch from a file that contains only one patch
+	 * and returns it as a specific patch object (single or multi)
+	 */
+	static readFromBlob(fbuf) {
+		var patch;
+		if (fbuf[4] == _CPPD) { //F0, 42, 3g, 50   Excl Header,  4C                      Function
+			patch = new KorgSinglePatch();
+		} else if (fbuf[4] == _CCPD) {
+			patch = new KorgMultiPatch();
+		} else {
+			throw `Cmd 0x${fbuf[4].toString(16)} instead of 0x${_CPPD.toString(16)} or 0x${_CCPD.toString(16)}`;
+		}
+		patch.__sd = _convertMidi2Int(fbuf.slice(6, -1));
+		patch._complete = true;
+		return patch;
+	}
+		
 	
 	/**
 	 *readMemoryBankFromSynth
@@ -317,32 +360,47 @@ class KorgPatch {
 		dump.append(_convertInt2Midi(idata));
 		return dump;
 	}
+
+	// performs the actual comparison
+	compare(pat) {
+		let rep;
+		if (!pat) return "Comparison data undefined";
+		if (pat.length != this.dlength) console.log(`Size mismatch: ${pat.length} instead of ${this.dlength}`);
+		let size = pat.length < this.dlength ? pat.length : this.dlength;
+		for (let ind=0; ind < size; ind ++) {
+			if (this.__sd[ind] != pat[ind]) {
+				console.log(`${ind}: 0x${pat[ind].toString(16)} -> 0x${this.__sd[ind].toString(16)}`);
+				if (!rep) rep = [ind, pat[ind], this.__sd[ind]];
+			}
+		}
+		if (!rep) return "All bytes correctly compared equal";
+		else return `Byte ${rep[0]} changed from 0x${rep[1].toString(16)} to 0x${rep[2].toString(16)}`;
+	}
 	
+	/**
+	 * test
+	 * checks, if a round trip thru the synth changes the clipboard patch
+	 */
 	test(mIn, mOut, mChan, postdat) {
 		Sysex.trace = true;
 		return new Promise((resolve,reject) => {
 			// let iData = _convertMidi2Int(_convertInt2Midi(this.__sd));
 			let save = this.__sd;
+			console.log("Writing clipboard to synth");
 			this.writeToSynth(mIn, mOut, mChan)
 				.then(() => {
+					console.log("Reading back");
 					return this.readFromSynth(mIn, mOut, mChan);
 				})
 				.then(() => {
-					let rep;
-					for (let ind=0; ind < save.length; ind ++) {
-						if (this.__sd[ind] != save[ind]) {
-							console.log(`${ind}: 0x${save[ind].toString(16)} -> 0x${this.__sd[ind].toString(16)}`);
-							if (!rep) rep = [ind, save[ind], this.__sd[ind]];
-						}
-					}
-					if (!rep) resolve("All bytes correctly converted to midi and back");
-					else resolve(`Byte ${rep[0]} changed from 0x${rep[1].toString(16)} to 0x${rep[2].toString(16)}`);
+					console.log("Comparing");
+					resolve(this.compare(save));
 				})
 				.catch((e) => {
 					reject(e);
 				});
 		});
-	}
+	} 
 }
 	
 
@@ -391,6 +449,31 @@ class KorgSinglePatch extends KorgPatch {
 		this.__sd = fbuf.slice(som, som+this.dlength);
 		this._complete = true;
 	}
+	
+	/**
+	 * sanitize
+	 * fixes illegal value combinations in the patch. The synthesizer seems to fix them "on the fly" while loading them,
+	 * but when the patch is sent via sysex, it breaks the engine :-(
+	 */
+	sanitize() {
+		if (!this.__sd) return; // nothing to fix
+		switch (this.__sd[34]) {
+			case 0:
+			case 1:
+			case 3:
+				//ok
+				break;
+			case 2:
+				this.__sd[34] = 1;
+				this.__sd[35] = 0;
+				this.__sd[130] = 0x7f;
+				this.__sd[131] = 0x7f;
+				break;
+			default:
+				this.__sd[34] = 0;
+				break;
+		}
+	}
 }
 
 class KorgMultiPatch extends KorgPatch {
@@ -436,6 +519,10 @@ class KorgMultiPatch extends KorgPatch {
 	fillFromBlob(fbuf, som) {
 		this.__sd = fbuf.slice(som, som+this.dlength);
 		this._complete = true;
+	}
+
+	sanitize() {
+		// nothing to fix (so far)
 	}
 }
 

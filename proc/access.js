@@ -38,7 +38,7 @@ module.exports = class Access {
 	readCurrentPatch() {
 		var curpat = new SinglePatch ();
 		return new Promise((resolve,reject) => {
-			curpat.readFromSynth(this.mIn, this.mChan).then((ign) => {
+			curpat.readFromSynth(this.mIn, this.mOut, this.mChan).then((ign) => {
 				this._clipboard = curpat;
 				resolve(curpat);
 			}).catch ((e) => {

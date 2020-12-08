@@ -13,7 +13,8 @@ var Roland = require(__dirname + '/proc/roland.js');
 var Access = require(__dirname + '/proc/access.js');
 var Korg = require(__dirname + '/proc/korg.js');
 
-const hostname = 'localhost';
+//const hostname = 'localhost';
+const hostname = '192.168.32.31';
 const port = 10532;
 const src_dir = 'file://' + __dirname + '/';
 
@@ -307,6 +308,20 @@ handlePost('/test', (postdat, res) => {
 	}	
 });
 
+handlePost('/comparePatch', (postdat, res) => {
+	getInstance(postdat.Mdl).compare(postdat.Cont).then((answ) => {
+		var result = {result:answ};
+		res.setHeader('Content-Type', 'audio/x-midi');
+		res.setHeader("cache-control", "no-store");
+		res.end(JSON.stringify(result));
+	}).catch((err) =>{
+		let Msg = 'Could not compare file, ' + err;
+		res.setHeader('Content-Type', 'text/json; charset=utf-8');
+		res.setHeader("cache-control", "no-store");
+		res.end('{"result":"' + Msg + '"}');
+	});
+});
+
 
 /**
  * SynthPage.html
@@ -381,17 +396,22 @@ WebMidi.enable(function(err) {
                 }
 }, true);
 
-
-if (os.type().includes("indows")) {
-    const browser = spawn('cmd.exe', ['"/c start /max http://' + hostname + ':' + port + '/index.html"']);
-    browser.on('exit', (code) => {
-            console.log(`browser child exited with code ${code}`);
-    });
+var bClient = !(process.argv[process.argv.length-1] == "-S" || process.argv[process.argv.length-1] == "--server-only");
+if (bClient) {
+	console.log(`bclient started, because argument is ${process.argv[process.argv.length-1]}`);
+	if (os.type().includes("indows")) {
+		const browser = spawn('cmd.exe', ['"/c start /max http://' + hostname + ':' + port + '/index.html"']);
+		browser.on('exit', (code) => {
+				console.log(`browser child exited with code ${code}`);
+		});
+	} else {
+		const browser = spawn('xdg-open', ['http://' + hostname + ':' + port + '/index.html']);
+		browser.on('exit', (code) => {
+				console.log(`browser child exited with code ${code}`);
+		});
+	}
 } else {
-    const browser = spawn('xdg-open', ['http://' + hostname + ':' + port + '/index.html']);
-    browser.on('exit', (code) => {
-            console.log(`browser child exited with code ${code}`);
-    });
+	console.log(`bclient not started, because argument is ${process.argv[process.argv.length-1]}`);
 }
 
 server.listen(port, hostname);

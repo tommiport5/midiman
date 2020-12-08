@@ -1,6 +1,5 @@
 "use strict"
 
-const port = 10532;
 
 const defaultBorderstyle = "outset";
 const highlightBorderstyle = "inset";
@@ -283,7 +282,7 @@ var ClipboardType;
 
 function forcequit() {
   var xhttp = new XMLHttpRequest();
-  xhttp.open("GET", 'http://localhost:' + port + '/forcequit', true);
+  xhttp.open("GET", '/forcequit', true);
   xhttp.send();  
   //ignore the answer
 };
@@ -345,7 +344,7 @@ function getJsonParam(url, param, func)
 }
 
 function quit() {
-	window.open('http://localhost:' + port + '/quit','_self');
+	window.open('/quit','_self');
 }
 
 function selectInterface() {
@@ -353,7 +352,7 @@ function selectInterface() {
 					MidiOut:document.getElementById("MidiOut").value,
 					MidiChan:document.getElementById("MidiChan").value,
 					Mdl:Model};
-	getJsonParam('http://localhost:' + port +'/selIfc', JSON.stringify(Settings), (data) => {
+	getJsonParam('/selIfc', JSON.stringify(Settings), (data) => {
 		if (data.error)
 			document.getElementById("Result").innerText = data.error;
 		else
@@ -363,7 +362,7 @@ function selectInterface() {
 
 function readCurrentPatch() {
 	let Settings = {Mdl: Model};
-	getJsonParam('http://localhost:' + port +'/readPatch', JSON.stringify(Settings), (data) => {
+	getJsonParam('/readPatch', JSON.stringify(Settings), (data) => {
 		if (data.error)
 			document.getElementById("Result").innerText = data.error;
 		else
@@ -374,7 +373,7 @@ function readCurrentPatch() {
 function writeCurrentPatch() {
 	
 	let Settings = {Mdl: Model};
-	getJsonParam('http://localhost:' + port +'/writePatch', JSON.stringify(Settings), (data) => {
+	getJsonParam('/writePatch', JSON.stringify(Settings), (data) => {
 		if (data.error)
 			document.getElementById("Result").innerText = data.error;
 		else
@@ -398,7 +397,7 @@ function readMemoryBank(i, typ, followup) {
 	}
 	document.getElementById("Result").innerText = `Receiving synth memory ${ctrl[i]}`;
 	try {
-		getJsonParam('http://localhost:' + port +'/readMemory', JSON.stringify(Settings), (data) => {
+		getJsonParam('/readMemory', JSON.stringify(Settings), (data) => {
 			document.getElementById("Result").innerText = data.result;
 			if (data.names) {
 				SynthPatches.push_pat(data.names);
@@ -431,7 +430,7 @@ function writeMemory() {
 	}
 	let Settings = {Mdl: Model, bnk:SynthPatches.curpage.BankTypePrefix+SynthPatches.curpage.BankLetter};
 	document.getElementById("Result").innerText = 'Writing current bank to synth';
-	getJsonParam('http://localhost:' + port +'/writeMemory', JSON.stringify(Settings), (data) => {
+	getJsonParam('/writeMemory', JSON.stringify(Settings), (data) => {
 		document.getElementById("Result").innerText = data.result;
 	});
 }
@@ -441,7 +440,7 @@ function readFile() {
 	var rd = new FileReader();
 	rd.onloadend = function() {
 		let Settings = {Mdl: Model, Cont:rd.result};
-		getJsonParam('http://localhost:' + port + '/readFile', JSON.stringify(Settings), (data) => {
+		getJsonParam( '/readFile', JSON.stringify(Settings), (data) => {
 			document.getElementById("Result").innerText = data.result;
 			if (data.names) {
 				FilePatches.patches = data.names;
@@ -452,6 +451,24 @@ function readFile() {
 	rd.readAsDataURL(fl);
 }
 
+function comparePatch() {
+	var fl = new FormData(document.getElementById("compareForm")).get("cfname");
+	var rd = new FileReader();
+	rd.onloadend = function() {
+		let Settings = {Mdl: Model, Cont:rd.result};
+		getJsonParam( '/comparePatch', JSON.stringify(Settings), (data) => {
+			document.getElementById("Result").innerText = data.result;
+		});
+	};
+	rd.readAsDataURL(fl);
+}
+
+function test() {
+	let Settings = {Mdl: Model};
+	getJsonParam('/test', JSON.stringify(Settings), (data) => {
+		document.getElementById("Result").innerText = data.result;
+	});
+}
 
 function swap() {
 	getJsonData('/swap?Mdl=' + Model, function() {
@@ -485,7 +502,7 @@ function drop(ev) {
 		to: Navi.serverFromTarget(dest_id),
 		Mdl: Model
 	};
-	getJsonParam('http://localhost:' + port +'/move', JSON.stringify(Settings), (answ) => {
+	getJsonParam('/move', JSON.stringify(Settings), (answ) => {
 		if (answ.ok) {
 			document.getElementById(dest_id).innerText = answ.ok;
 			if (dest_id[0] == 'S' ) SynthPatches.set_pat(Number(dest_id.substr(2)), src_txt);
@@ -509,7 +526,7 @@ function displayForm() {
 	SynthPatches = new Navi("stab","slb");
 	FilePatches = new Navi("ftab","flb");
 	var sel1 = document.getElementById("MidiOut");
-	getJsonData('http://localhost:' + port +'/outputs?Mdl=' + Model, (answ) => {
+	getJsonData('/outputs?Mdl=' + Model, (answ) => {
 		answ.list.forEach((nam) => {
 			var opt = document.createElement("OPTION");
 			opt.text = nam;
@@ -522,7 +539,7 @@ function displayForm() {
 			document.getElementById("Result").innerText = answ.error;			
 	});
 	var sel2 = document.getElementById("MidiIn");
-	getJsonData('http://localhost:' + port +'/inputs?Mdl=' + Model, (answ) => {
+	getJsonData('/inputs?Mdl=' + Model, (answ) => {
 		answ.list.forEach((nam) => {
 			var opt = document.createElement("OPTION");
 			opt.text = nam;
@@ -547,7 +564,7 @@ function displayForm() {
 
 function test() {
 	let Settings = {Mdl: Model};
-	getJsonParam('http://localhost:' + port +'/test', JSON.stringify(Settings), (data) => {
+	getJsonParam('/test', JSON.stringify(Settings), (data) => {
 		document.getElementById("Result").innerText = data.result;
 	});
 }

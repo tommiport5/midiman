@@ -96,17 +96,24 @@ Combinations
 <label for="c">Clipboard</label><p class="clipboard" id="c" ondragstart="dragStart(event)" draggable=true ondrop="drop(event)" ondragover="allowDrop(event)"></p>
 <button type="button" class="nav_item" id="readpatch">Read Current Patch</button>
 <button type="button" class="nav_item" id="writepatch">Write To Synth</button>
-<a href="http://localhost:10532/writePatch.syx?Mdl=Korg+Triton" class="button" download>Write To File</a>
+<a href="/writePatch.syx?Mdl=Korg+Triton" class="button" download>Write To File</a>
 <button type="button" class="nav_item" id="test">Test</button>
+<div>
+<form id="compareForm">
+<label for="cfname">File to compare (*.syx)</label>
+<input id="cfname" name="cfname" type="file">
+<button type="button" onclick="comparePatch()">Compare File</button>
+</form>
+</div>
 </div>
 <div class="framed" id="file">
 <h1>File</h1>
 <span>
 <form id="readForm">
-<label for="fname">File to Read (*.syx)</label>
+<label for="fname">File to read (*.syx)</label>
 <input id="fname" name="fname" type="file">
 <button type="button" id="readFile">Read File</button>
-<a href="http://localhost:10532/writeFile.syx?Mdl=Korg+Triton" class="button" download>Write File</a>
+<a href="/writeFile.syx?Mdl=Korg+Triton" class="button" download>Write File</a>
 </form>
 </span>
 <div class="seltab">

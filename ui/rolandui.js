@@ -7,7 +7,7 @@ var FilePatches;
 
 function forcequit() {
   var xhttp = new XMLHttpRequest();
-  xhttp.open("GET", 'http://localhost:' + port + '/forcequit', true);
+  xhttp.open("GET", '/forcequit', true);
   xhttp.send();  
   //ignore the answer
 };
@@ -69,7 +69,7 @@ function getJsonParam(url, param, func)
 }
 
 function quit() {
-	window.open('http://localhost:' + port + '/quit','_self');
+	window.open( '/quit','_self');
 }
 
 function selectInterface() {
@@ -77,7 +77,7 @@ function selectInterface() {
 					MidiOut:document.getElementById("MidiOut").value,
 					MidiChan:document.getElementById("MidiChan").value,
 					Mdl:Model};
-	getJsonParam('http://localhost:' + port +'/selIfc', JSON.stringify(Settings), (data) => {
+	getJsonParam('/selIfc', JSON.stringify(Settings), (data) => {
 		if (data.error)
 			document.getElementById("Result").innerText = data.error;
 		else
@@ -87,7 +87,7 @@ function selectInterface() {
 
 function readCurrentPatch() {
 	let Settings = {Mdl: Model};
-	getJsonParam('http://localhost:' + port +'/readPatch', JSON.stringify(Settings), (data) => {
+	getJsonParam('/readPatch', JSON.stringify(Settings), (data) => {
 		if (data.error)
 			document.getElementById("Result").innerText = data.error;
 		else
@@ -99,7 +99,7 @@ function readCurrentPatch() {
 function readMemory() {
 	let Settings = {Mdl: Model};
 	document.getElementById("Result").innerText = 'On the D50 press "Data Transfer/B.Dump/Enter" and wait while the D50 displays "Sending"';
-	getJsonParam('http://localhost:' + port +'/readMemory', JSON.stringify(Settings), (data) => {
+	getJsonParam('/readMemory', JSON.stringify(Settings), (data) => {
 		document.getElementById("Result").innerText = data.result;
 		if (data.names) {
 			displayNames("spname", data.names);
@@ -111,7 +111,7 @@ function readMemory() {
 function writeMemory() {
 	let Settings = {Mdl: Model};
 	document.getElementById("Result").innerText = 'On the D50 press "Data Transfer/B.Load/Enter" and wait while the D50 displays "Loading"';
-	getJsonParam('http://localhost:' + port +'/writeMemory', JSON.stringify(Settings), (data) => {
+	getJsonParam('/writeMemory', JSON.stringify(Settings), (data) => {
 		document.getElementById("Result").innerText = data.result;
 	});
 }
@@ -121,7 +121,7 @@ function readFile() {
 	var rd = new FileReader();
 	rd.onloadend = function() {
 		let Settings = {Mdl: Model, Cont:rd.result};
-		getJsonParam('http://localhost:' + port + '/readFile', JSON.stringify(Settings), (data) => {
+		getJsonParam( '/readFile', JSON.stringify(Settings), (data) => {
 			document.getElementById("Result").innerText = data.result;
 			if (data.names) {
 				displayNames("fpname", data.names);
@@ -181,7 +181,7 @@ function drop(ev) {
 		to: dest_id,
 		Mdl: Model
 	};
-	getJsonParam('http://localhost:' + port +'/move', JSON.stringify(Settings), (answ) => {
+	getJsonParam('/move', JSON.stringify(Settings), (answ) => {
 		if (answ.ok) {
 			document.getElementById(dest_id).innerText = answ.ok;
 			if (dest_id[0] == 'S' ) SynthPatches.set_pat(Number(dest_id.substr(2)), src_txt);
@@ -226,7 +226,7 @@ function displayNames(tab, src) {
 function displayForm() {
 	var Settings;
 	var sel1 = document.getElementById("MidiOut");
-	getJsonData('http://localhost:' + port +'/outputs?Mdl=' + Model, (answ) => {
+	getJsonData('/outputs?Mdl=' + Model, (answ) => {
 		answ.list.forEach((nam) => {
 			var opt = document.createElement("OPTION");
 			opt.text = nam;
@@ -239,7 +239,7 @@ function displayForm() {
 			document.getElementById("Result").innerText = answ.error;			
 	});
 	var sel2 = document.getElementById("MidiIn");
-	getJsonData('http://localhost:' + port +'/inputs?Mdl=' + Model, (answ) => {
+	getJsonData('/inputs?Mdl=' + Model, (answ) => {
 		answ.list.forEach((nam) => {
 			var opt = document.createElement("OPTION");
 			opt.text = nam;

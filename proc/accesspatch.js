@@ -54,14 +54,14 @@ class AccessPatch {
 	 * readFromSynth
 	 * reads the current (single) edit patch into this object
 	 */
-	readFromSynth(mIn, mChan) {
+	readFromSynth(mIn, mOut, mChan) {
 		return new Promise((resolve,reject) => {
 			try {
 				var rd = new Sysex(mChan, _SIR);
 				var ds = new Sysex();
 				var Ret = ds.listen(mIn);
 				rd.append([0,0x40]);
-				rd.send(this.mOut);
+				rd.send(mOut);
 				Ret.then((sx) => {
 					this.fillFromSysex(sx);
 					resolve("ok");

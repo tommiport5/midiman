@@ -36,12 +36,32 @@ module.exports = class Korg {
 	}
 	
 	readCurrentPatch() {
-		var curpat = new SinglePatch ();		//TODO: query mode and read either program or combi
 		return new Promise((resolve,reject) => {
-			curpat.readFromSynth(this.mIn, this.mOut, this.mChan).then((ign) => {
+			var curpat;
+			Patch.getDeviceMode(this.mIn, this.mOut, this.mChan)
+			.then((mode) => {
+				switch(mode[0]) {
+					case 0:
+					case 1:
+						curpat = new MultiPatch();
+						break;
+					case 2:
+					case 3:
+						curpat = new SinglePatch();
+						break;
+					default:
+						return Promise.reject("Mode not program or combi");
+				}
+				return Promise.resolve("Ok");
+			})
+			.then(() => {
+				return curpat.readFromSynth(this.mIn, this.mOut, this.mChan);
+			})
+			.then(() => {
 				this._clipboard = curpat;
 				resolve(curpat);
-			}).catch ((e) => {
+			})
+			.catch ((e) => {
 				reject(e);
 			});
 		});
@@ -67,7 +87,7 @@ module.exports = class Korg {
 		return new Promise((resolve,reject) => {
 			if (this._clipboard == undefined) reject(new Error("Clipboard empty"));
 			try {
-				var DatArr = Patch.writePatchToBlob(this._clipboard);
+				var DatArr = this._clipboard.writeToBlob();
 				resolve(DatArr);
 			} catch (e) {
 				reject(e);
@@ -237,6 +257,32 @@ module.exports = class Korg {
 	test(postdat) {
 		if (this._clipboard == undefined) return Promise.reject(new Error("Clipboard empty"));
 		else return this._clipboard.test(this.mIn, this.mOut, this.mChan, postdat);
+	}
+
+	/**
+	 * compare
+	 * compares the clipboard patch against a file
+	 */
+	compare(postdat) {
+		return new Promise((resolve,reject) => {
+			if (this._clipboard == undefined) {
+				return reject(new Error("Clipboard empty"));
+			} else {
+				console.log("Comparing clipboard against selected file");
+				var start = postdat.indexOf('base64,');
+				if (start == -1) reject("base64 error");
+				try {
+					var Dat = Base64.atob(postdat.slice(start+7));
+					var DatArr = new Array(Dat.length);
+					for (var i=0; i< Dat.length; i++)
+						DatArr[i] = Dat.charCodeAt(i);
+					let ref = Patch.readFromBlob(DatArr);
+					resolve(this._clipboard.compare(ref.__sd));
+				} catch (e) {
+					reject(e);
+				}
+			}
+		});
 	}
 }
 
