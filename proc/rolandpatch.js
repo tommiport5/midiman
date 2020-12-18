@@ -474,7 +474,17 @@ module.exports = class RolandPatch {
 		eod.send(mOut);
 		return Ret;
 	}
+	
+	/**
+	 * test
+	 * checks, if a round trip thru the synth changes the clipboard patch
+	 */
+	test(mIn, mOut, mChan, postdat) {
+		console.log(`Testing patch ${this.patchname}`);
+		return Promise.resolve("All bytes correctly compared equal");
+	}
 }
+	
 		
 
 

@@ -13,8 +13,8 @@ var Roland = require(__dirname + '/proc/roland.js');
 var Access = require(__dirname + '/proc/access.js');
 var Korg = require(__dirname + '/proc/korg.js');
 
-//const hostname = 'localhost';
-const hostname = '192.168.32.31';
+const hostname = 'localhost';
+//const hostname = '192.168.32.31';
 const port = 10532;
 const src_dir = 'file://' + __dirname + '/';
 
@@ -377,7 +377,7 @@ app.get ('/*', function(req,res) {
 		deliver(src_dir + req.url, res);
 	} else if (fs.existsSync(new URL(src_dir + "ui" + req.url))) {
 		deliver(src_dir + "ui" + req.url, res);
-	} else if (fs.existsSync(new URL(src_dir + "process" + req.url))) {
+	} else if (fs.existsSync(new URL(src_dir + "proc" + req.url))) {
 		deliver(src_dir + "process" + req.url, res);
 	} else {
 		console.log(req.url + ' not found');

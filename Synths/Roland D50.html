@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
+<title>Roland D50</title>
 <meta charset="utf-8"/>
 <meta content="no-cache" http-equiv="cache-control"/>
 <meta content="no-cache" http-equiv="pragma"/>
@@ -23,7 +24,7 @@ function tolinear() {
 
 const Model = "Roland D50";
 </script>
-<script src="rolandui.js"></script> 
+<script src="/rolandui.js"></script> 
 </head>
 <body>
 <div class="container">
@@ -103,6 +104,7 @@ Midi Channel
 <button type="button" id="swapbutton">Swap</button><label for="c">Clipboard</label><p class="clipboard" id="c" ondragstart="dragStart(event)" draggable=true ondrop="drop(event)" ondragover="allowDrop(event)"></p>
 <button type="button" class="nav_item" id="readPatch">Read Current Patch</button>
 <a href="/writePatch.syx?Mdl=Roland+D50" class="button" download>Write Patch To File</a>
+<button type="button" class="nav_item" id="test">Test</button>
 </div>
 <div class="framed" id="file">
 <h1>File</h1>

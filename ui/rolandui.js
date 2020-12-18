@@ -222,6 +222,13 @@ function displayNames(tab, src) {
 	}
 }
 
+function test() {
+	let Settings = {Mdl: Model};
+	getJsonParam('/test', JSON.stringify(Settings), (data) => {
+		document.getElementById("Result").innerText = data.result;
+	});
+}
+
 	
 function displayForm() {
 	var Settings;
@@ -260,6 +267,7 @@ function displayForm() {
 	document.getElementById("readFile").addEventListener('click',readFile);
 	//document.getElementById("writeFile").href = "http://localhost:10532/writeFile.syx?Mdl=" + Model;
 	document.getElementById("swapbutton").addEventListener('click',swap);
+	document.getElementById("test").addEventListener('click',test);
 	prepareDnd();
 }
 
