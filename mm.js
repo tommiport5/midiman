@@ -33,6 +33,8 @@ var MySettings = [];
 var theSynthesizers = [];
 const SynthClasses = {"Roland":Roland, "Access":Access, "Korg": Korg};
 
+var bServerMode = process.argv[process.argv.length-1] == "-S" || process.argv[process.argv.length-1] == "--server-only";
+
 function readSettings(model) {
 	try {
 		var settings = MySettings.find((it) =>{return it.name == model;});
@@ -59,28 +61,31 @@ function readSettings(model) {
 }
 
 function getInstance(model) {
+	readSettings(model);
 	return theSynthesizers.find((it) => {return it.name == model;}).synth;
 }
 
 function handlePost(url, func) {
 	app.post(url, (req, res) => {
+		//console.log(`Received a post to ${req.path}`);
 		var querydata = "";
 		req.on('data', (data) => {
-			//console.log("data: " + data);
+			//console.log(`Received data for ${req.path}`);
 			querydata += data;
 			if (querydata.length > 1e8) {
 				querydata = "";
 				res.writeHead(413, {'Content-Type': 'text/plain'}).end();
 				req.connection.destroy();
 			}
-		});
-		req.on('end', () => {
-			var answer;
+		}).on('end', () => {
 			try {
+				//console.log(`Received end for ${req.path}`);
 				func(JSON.parse(querydata), res);
 			} catch (e){
-				console.log('error - Cannot read post data: ' + e);
+				console.log(`error handling ${req.path}: ${e}`);
 			}
+		}).on('error', (err) => {
+			console.log(`Received error ${err} for ${req.path}`);
 		});
 	});
 }
@@ -122,10 +127,12 @@ app.get('/quit', function (req, res) {
   res.write('<html><head><script>document.onload = function() {window.close();};</script></head>');
   //res.write('<html><head><script>function max_zu() {window.close();};</script></head>');
   res.end('<body>Bye!</body></html>');
-  server.close();
-  WebMidi.disable();
-  console.log('server closed and WebMidi disabled');
-  process.exit(0);
+  if (!bServerMode) {
+	  server.close();
+	  WebMidi.disable();
+	  console.log('server closed and WebMidi disabled');
+	  process.exit(0);
+  }
 });
 
 app.get('/swap',function (req,res) {
@@ -136,6 +143,8 @@ app.get('/swap',function (req,res) {
 
 
 handlePost('/move',function (req,res) {
+	console.log(`moving ${req.from} to ${req.to}`);
+	res.statusCode = 200;
 	res.setHeader('Content-Type', 'text/json; charset=utf-8');
 	res.end(JSON.stringify(getInstance(req.Mdl).move(req.from, req.to)));
 });
@@ -396,9 +405,8 @@ WebMidi.enable(function(err) {
                 }
 }, true);
 
-var bClient = !(process.argv[process.argv.length-1] == "-S" || process.argv[process.argv.length-1] == "--server-only");
-if (bClient) {
-	console.log(`bclient started, because argument is ${process.argv[process.argv.length-1]}`);
+
+if (!bServerMode) {
 	if (os.type().includes("indows")) {
 		const browser = spawn('cmd.exe', ['"/c start /max http://' + hostname + ':' + port + '/index.html"']);
 		browser.on('exit', (code) => {
@@ -411,7 +419,7 @@ if (bClient) {
 		});
 	}
 } else {
-	console.log(`bclient not started, because argument is ${process.argv[process.argv.length-1]}`);
+	console.log("MidiManager started in server mode");
 }
 
 server.listen(port, hostname);
