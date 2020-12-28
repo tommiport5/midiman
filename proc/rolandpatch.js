@@ -16,6 +16,7 @@ const _ACK = 0x43;
 const _EOD = 0x45;
 const _RJC = 0x4f;
 const _RQ1 = 0x11;
+const _DT1 = 0x12;
 
 const FillState = Object.freeze ({
 	up1: 1,
@@ -27,6 +28,15 @@ const FillState = Object.freeze ({
 	pd: 7
 });
 
+function delay(ms) {
+	return new Promise((resolve) => {
+		setTimeout(() => {
+			resolve();
+		}, ms);
+	});
+}
+
+
 function address2PatchAndState(adr) {
 	let point = (adr - 32768) / 448;
 	let patch = Math.trunc(point);
@@ -35,15 +45,12 @@ function address2PatchAndState(adr) {
 }
 
 module.exports = class RolandPatch {
-	constructor(MIn, MOut, MChan) {
-		this.mIn = MIn;
-		this.mOut = MOut;
-		this.mChan = MChan;
+	constructor() {
 		this._complete = false;
 	}
 	
 	get complete() {
-		return this.complete;
+		return this._complete;
 	}
 	
 	static toStr(arr) {
@@ -100,37 +107,36 @@ module.exports = class RolandPatch {
 	 *readFromSynth
 	 * reads the current patch into this object
 	 */
-	readFromSynth() {
-		var This = this;
+	readFromSynth(mIn, mOut, mChan) {
 		return new Promise((resolve,reject) => {
 			try {
-				var rd = new Sysex(This.mChan, _RQ1);
+				var rd = new Sysex(mChan, _RQ1);
 				var ds = new Sysex();
-				var Ret = ds.listen(This.mIn);
+				var Ret = ds.listen(mIn);
 				rd.append([0,0,0]);
 				rd.append(RolandPatch.num2threebyte(256));
-				rd.send(This.mOut);
+				rd.send(mOut);
 				Ret.then((sx) => {
 					//if (sx.command == _RJC) throw "rejected";
 					let add = sx.raw.slice(0,3);
 					let sxd = sx.raw.slice(3);
-					This.up1 = sxd.slice(0,64);
-					This.up2 = sxd.slice(64,128);
-					This.upc = sxd.slice(128,192);
-					This.lp1 = sxd.slice(192);
-					Ret = ds.listen(This.mIn);
-					rd = new Sysex(This.mChan, _RQ1);
+					this.up1 = sxd.slice(0,64);
+					this.up2 = sxd.slice(64,128);
+					this.upc = sxd.slice(128,192);
+					this.lp1 = sxd.slice(192);
+					Ret = ds.listen(mIn);
+					rd = new Sysex(mChan, _RQ1);
 					rd.append(RolandPatch.num2threebyte(256));
 					rd.append(RolandPatch.num2threebyte(192));
-					rd.send(This.mOut);
+					rd.send(mOut);
 					return Ret;
 				}).then((sx) =>{
 					//if (sx.command == _RJC) throw "rejected";
 					let add = sx.raw.slice(0,3);
 					let sxd = sx.raw.slice(3);
-					This.lp2 = sxd.slice(0,64);
-					This.lpc = sxd.slice(64,128);
-					This.pd = sxd.slice(128);
+					this.lp2 = sxd.slice(0,64);
+					this.lpc = sxd.slice(64,128);
+					this.pd = sxd.slice(128);
 					this._complete = true;
 					resolve("ok");
 					return Ret;
@@ -142,6 +148,34 @@ module.exports = class RolandPatch {
 				console.log('exception occured in read from synth: ' + e);
 				reject(e);
 			}
+		});
+	}
+	
+	/**
+	 *writeToSynth
+	 *  writes this object into the current patch
+	 */	
+	writeToSynth(mIn, mOut, mChan) {
+		//Sysex.trace = true;
+		return new Promise((resolve,reject) => {
+			var wr = new Sysex(mChan, _DT1);
+			wr.append([0,0,0]);
+			wr.append(this.up1);
+			wr.append(this.up2);
+			wr.append(this.upc);
+			wr.append(this.lp1);
+			wr.send(mOut);
+			delay(20).then(() => {
+				wr = new Sysex(mChan, _DT1);
+				wr.append(RolandPatch.num2threebyte(256));
+				wr.append(this.lp2);
+				wr.append(this.lpc);
+				wr.append(this.pd);
+				wr.send(mOut);
+				resolve(delay(20));
+			}).catch((err) => {
+				reject(err);
+			});
 		});
 	}
 	
@@ -475,13 +509,57 @@ module.exports = class RolandPatch {
 		return Ret;
 	}
 	
+	_comparePart(a, b, rep, name) {
+		if (a.length != b.length) console.log(`size mismatch ${name}`);
+		let lng = (a.length > b.length) ? b.length : a.length;
+		for (let ind=0; ind < lng; ind ++) {
+			if (a[ind] != b[ind]) {
+				console.log(`${name}[${ind}]: 0x${a[ind].toString(16)} -> 0x${b[ind].toString(16)}`);
+				if (!rep) rep = [ind, a[ind], b[ind], name];
+			}
+		}
+		return rep;
+	}
+	/**
+	 * compare
+	 * compares this patch against pat
+	 */
+	compare(pat) {
+		let rep = this._comparePart(pat.up1, this.up1, undefined, 'UpperPart 1');
+		rep = this._comparePart(pat.up2, this.up2, rep, 'UpperPart 2');		
+		rep = this._comparePart(pat.upc, this.upc, rep, 'UpperPart Common');
+		rep = this._comparePart(pat.lp1, this.lp1, rep, 'LowerPart 1');
+		rep = this._comparePart(pat.lp2, this.lp2, rep, 'LowerPart 2');
+		rep = this._comparePart(pat.lp2, this.lp2, rep, 'LowerPart 2');
+		rep = this._comparePart(pat.pd, this.pd, rep, 'Patch Data');
+		if (!rep) return "All bytes correctly compared equal";
+		else return `Byte ${rep[0]} of ${rep[3]} changed from 0x${rep[1].toString(16)} to 0x${rep[2].toString(16)}`;
+	}
+	
 	/**
 	 * test
 	 * checks, if a round trip thru the synth changes the clipboard patch
 	 */
 	test(mIn, mOut, mChan, postdat) {
 		console.log(`Testing patch ${this.patchname}`);
-		return Promise.resolve("All bytes correctly compared equal");
+		return new Promise((resolve,reject) => {
+			// let iData = _convertMidi2Int(_convertInt2Midi(this.__sd));
+			let save = {up1: this.up1, up2: this.up2, upc: this.upc, lp1: this.lp1, lp2: this.lp2, lpc: this.lpc, pd: this.pd};
+			console.log("Writing clipbo0ard to synth");
+			this.writeToSynth(mIn, mOut, mChan)
+				.then(() => {
+					//console.log("Reading back");
+					return this.readFromSynth(mIn, mOut, mChan);
+				})
+				.then(() => {
+					//console.log("Comparing");
+					resolve(this.compare(save));
+				})
+				.catch((e) => {
+					reject(e);
+				});
+		});
+
 	}
 }
 	

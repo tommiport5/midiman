@@ -59,11 +59,12 @@ describe('Midi Patch Manager', () => {
 			Click.on(SynthCommon.ReadFileButton),
 			Wait.until(Text.of(SynthCommon.Result), includes('Successfull')),	
 			//Loop.over(SynthCommon.FilePatches).to(
-				rest.movePatchToClipboard(helpers.getConfigString(Website.title(), 'name'), Attribute.of(picked.get(0)).called('id')
+				rest.movePatchToClipboard(helpers.getConfigString(Website.title(), 'name'), Attribute.of(picked.get(0)).called('id')),
 				//	Attribute.of(Loop.item()).called('id')),
-				//Click.on(SynthCommon.TestButton),
-			),
+				Click.on(SynthCommon.TestButton),
+			//),
 			Wait.for(Duration.ofSeconds(5)),
+			Log.the(Text.of(SynthCommon.Result))
         ));
 
 });

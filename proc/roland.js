@@ -69,9 +69,9 @@ module.exports = class Roland {
 	*/
 	
 	readCurrentPatch() {
-		var curpat = new Patch (this.mIn, this.mOut, this.mChan);
+		var curpat = new Patch ();
 		return new Promise((resolve,reject) => {
-			curpat.readFromSynth().then((ign) => {
+			curpat.readFromSynth(this.mIn, this.mOut, this.mChan).then((ign) => {
 				this._clipboard = curpat;
 				resolve(curpat);
 			}).catch ((e) => {
@@ -217,6 +217,7 @@ module.exports = class Roland {
 	
 	test(postdat) {
 		if (this._clipboard == undefined) return Promise.reject(new Error("Clipboard empty"));
+		if (!this._clipboard.complete) return Promise.reject(new Error("Clipboard incomplete"));
 		else return this._clipboard.test(this.mIn, this.mOut, this.mChan, postdat);
 	}
 
