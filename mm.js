@@ -143,7 +143,7 @@ app.get('/swap',function (req,res) {
 
 
 handlePost('/move',function (req,res) {
-	//console.log(`moving ${req.from} to ${req.to}`);
+	console.log(`moving ${req.from} to ${req.to}`);
 	res.statusCode = 200;
 	res.setHeader('Content-Type', 'text/json; charset=utf-8');
 	res.end(JSON.stringify(getInstance(req.Mdl).move(req.from, req.to)));

@@ -224,6 +224,7 @@ function displayNames(tab, src) {
 
 function test() {
 	let Settings = {Mdl: Model};
+	document.getElementById("Result").innerText = "";
 	getJsonParam('/test', JSON.stringify(Settings), (data) => {
 		document.getElementById("Result").innerText = data.result;
 	});

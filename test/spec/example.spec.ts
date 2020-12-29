@@ -1,13 +1,12 @@
 import 'jasmine';
 
-import { Ensure, includes, property, isGreaterThan } from '@serenity-js/assertions';
-import { Ability, actorCalled, actorInTheSpotlight, Duration, engage, Interaction,  Log, Loop, UsesAbilities} from '@serenity-js/core';
+import { Ensure, includes, property, isGreaterThan, Check } from '@serenity-js/assertions';
+import { actorCalled, Duration, engage, Log, Loop, } from '@serenity-js/core';
 import { Navigate, Website, Target, Click, Switch, Text, Enter, Attribute, Wait, Pick } from '@serenity-js/protractor';
 import {by, ElementArrayFinder, ElementFinder } from 'protractor';
 import {Actors} from '../src';
 import * as helpers from '../src/helpers';
 import * as rest from '../src/rest';
-import { CallAnApi } from '@serenity-js/rest';
 
 export {SynthCommon};
 
@@ -24,12 +23,15 @@ class SynthCommon {
 	static TestButton = Target.the('TestButton').located(by.id('test'));
 }
 
+var globalScope = global as any;
+globalScope.jasmine.DEFAULT_TIMEOUT_INTERVAL = 1000000;
+
 describe('Midi Patch Manager', () => {
 	
 
     beforeEach(() => engage(new Actors()));
 
-/*
+
 	it(`gives us a choice of synths`, () =>
         actorCalled('Jasmine')
 			.attemptsTo(
@@ -46,25 +48,26 @@ describe('Midi Patch Manager', () => {
 				Ensure.that(Text.of(Target.the('body').located(by.css('body'))),includes('Bye')),	
 			)
 	);
-*/
+
 	const picked = Pick.from<ElementFinder, ElementArrayFinder>(SynthCommon.FilePatches);
 	
 	it('tests one synth', () =>
-        actorCalled('Jasmine').whoCan(
-			CallAnApi.at('http://localhost:10532'),
-		)
+        actorCalled('Jasmine')
 		.attemptsTo(
             Navigate.to('http://localhost:10532/Synths/Roland D50.html'),
 			Enter.theValue(helpers.getConfigString(Website.title(), 'sysex')).into(SynthCommon.InputFileName),	
 			Click.on(SynthCommon.ReadFileButton),
 			Wait.until(Text.of(SynthCommon.Result), includes('Successfull')),	
-			//Loop.over(SynthCommon.FilePatches).to(
-				rest.movePatchToClipboard(helpers.getConfigString(Website.title(), 'name'), Attribute.of(picked.get(0)).called('id')),
-				//	Attribute.of(Loop.item()).called('id')),
+			Loop.over(SynthCommon.FilePatches).to(
+				rest.SendMoveRequest(helpers.getConfigString(Website.title(), 'name'),
+					Attribute.of(Loop.item()).called('id')),
 				Click.on(SynthCommon.TestButton),
-			//),
-			Wait.for(Duration.ofSeconds(5)),
-			Log.the(Text.of(SynthCommon.Result))
+				Wait.for(Duration.ofSeconds(1)),
+				Check.whether(Text.of(SynthCommon.Result), includes('changed from'))
+					.andIfSo(
+						Log.the(Text.of(Loop.item()), SynthCommon.Result),
+				),
+			),
         ));
 
 });

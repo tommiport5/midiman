@@ -545,10 +545,11 @@ module.exports = class RolandPatch {
 		return new Promise((resolve,reject) => {
 			// let iData = _convertMidi2Int(_convertInt2Midi(this.__sd));
 			let save = {up1: this.up1, up2: this.up2, upc: this.upc, lp1: this.lp1, lp2: this.lp2, lpc: this.lpc, pd: this.pd};
-			console.log("Writing clipbo0ard to synth");
+			//console.log("Writing clipboard to synth");
 			this.writeToSynth(mIn, mOut, mChan)
 				.then(() => {
 					//console.log("Reading back");
+					this.up1 = this.up2 = this.upc = this.lp1 = this.lp2 = this.lpc = this.pd = undefined;
 					return this.readFromSynth(mIn, mOut, mChan);
 				})
 				.then(() => {

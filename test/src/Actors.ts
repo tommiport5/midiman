@@ -1,4 +1,4 @@
-import { Ability, Actor, Cast } from '@serenity-js/core';
+import { Actor, Cast } from '@serenity-js/core';
 import { BrowseTheWeb } from '@serenity-js/protractor';
 import { CallAnApi } from '@serenity-js/rest';
 import { protractor } from 'protractor';
