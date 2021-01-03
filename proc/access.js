@@ -228,6 +228,13 @@ module.exports = class Access {
 			return {error:e.toString()};
 		}
 	}
+	
+	test(postdat) {
+		if (this._clipboard == undefined) return Promise.reject(new Error("Clipboard empty"));
+		if (!this._clipboard.complete) return Promise.reject(new Error("Clipboard incomplete"));
+		else return this._clipboard.test(this.mIn, this.mOut, this.mChan, postdat);
+	}
+	
 }
 
 

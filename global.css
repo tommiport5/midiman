@@ -38,6 +38,7 @@ body {
 #Result {
 	margin-top: 2px;
 	margin-bottom: 2px;
+	min-height: 1.2em;
 }
 
 table, th, td { border:1px solid; border-collapse:collapse; border-spacing:2px; padding:2px;}

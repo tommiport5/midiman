@@ -50,7 +50,7 @@ exports.config = {
 
         // see https://github.com/SeleniumHQ/selenium/wiki/DesiredCapabilities#loggingpreferences-json-object
         loggingPrefs: {
-            browser: "SEVERE" // "OFF", "SEVERE", "WARNING", "INFO", "CONFIG", "FINE", "FINER", "FINEST", "ALL".
+            browser: "WARNING" // "OFF", "SEVERE", "WARNING", "INFO", "CONFIG", "FINE", "FINER", "FINEST", "ALL".
         },
 
         chromeOptions: {

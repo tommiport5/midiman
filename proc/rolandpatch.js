@@ -155,7 +155,7 @@ module.exports = class RolandPatch {
 	 *writeToSynth
 	 *  writes this object into the current patch
 	 */	
-	writeToSynth(mIn, mOut, mChan) {
+	writeToSynth(mOut, mChan) {
 		//Sysex.trace = true;
 		return new Promise((resolve,reject) => {
 			var wr = new Sysex(mChan, _DT1);
@@ -546,7 +546,7 @@ module.exports = class RolandPatch {
 			// let iData = _convertMidi2Int(_convertInt2Midi(this.__sd));
 			let save = {up1: this.up1, up2: this.up2, upc: this.upc, lp1: this.lp1, lp2: this.lp2, lpc: this.lpc, pd: this.pd};
 			//console.log("Writing clipboard to synth");
-			this.writeToSynth(mIn, mOut, mChan)
+			this.writeToSynth(mOut, mChan)
 				.then(() => {
 					//console.log("Reading back");
 					this.up1 = this.up2 = this.upc = this.lp1 = this.lp2 = this.lpc = this.pd = undefined;

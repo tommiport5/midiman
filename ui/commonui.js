@@ -156,6 +156,7 @@ class Navi {
 			btn.innerText = ButList[i] + "1";
 			btn.onclick = this._makeDisplayNames(pid);
 			btn.id = pid.asButtonId(this._buttonPrefix());
+			btn.className = 'lbb';
 			td.appendChild(btn);
 			td = CurrentRow.insertCell(-1);
 			td.className = this._seltab[0] == 's' ? "slb" : "flb";
@@ -164,6 +165,7 @@ class Navi {
 			btn.innerText = ButList[i] + "2";
 			btn.onclick = this._makeDisplayNames(pid);
 			btn.id = pid.asButtonId(this._buttonPrefix());
+			btn.className = 'lbb';
 			td.appendChild(btn);
 		}
 	}
@@ -465,6 +467,7 @@ function comparePatch() {
 
 function test() {
 	let Settings = {Mdl: Model};
+	document.getElementById("Result").innerText = "";
 	getJsonParam('/test', JSON.stringify(Settings), (data) => {
 		document.getElementById("Result").innerText = data.result;
 	});
@@ -564,6 +567,7 @@ function displayForm() {
 
 function test() {
 	let Settings = {Mdl: Model};
+	document.getElementById("Result").innerText = "";
 	getJsonParam('/test', JSON.stringify(Settings), (data) => {
 		document.getElementById("Result").innerText = data.result;
 	});

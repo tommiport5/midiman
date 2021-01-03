@@ -213,6 +213,45 @@ class AccessPatch {
 		return Buffer.from(Uint8Array.from(dat));
 	}
 	
+	/**
+	 * test
+	 * checks, if a round trip thru the synth changes the clipboard patch
+	 */
+	test(mIn, mOut, mChan, postdat) {
+		console.log(`Testing patch ${this.patchname}`);
+		return new Promise((resolve,reject) => {
+			// let iData = _convertMidi2Int(_convertInt2Midi(this.__sd));
+			let save = this.save();
+			//console.log("Writing clipboard to synth");
+			this.writeToSynth(mOut, mChan)
+				.then(() => {
+					//console.log("Reading back");
+					this.clear();
+					return this.readFromSynth(mIn, mOut, mChan);
+				})
+				.then(() => {
+					//console.log("Comparing");
+					resolve(this.compare(save));
+				})
+				.catch((e) => {
+					reject(e);
+				});
+		});
+
+	}
+	
+	_comparePart(a, b, rep, name) {
+		if (a.length != b.length) console.log(`size mismatch ${name}`);
+		let lng = (a.length > b.length) ? b.length : a.length;
+		for (let ind=0; ind < lng; ind ++) {
+			if (a[ind] != b[ind]) {
+				console.log(`${name}[${ind}]: 0x${a[ind].toString(16)} -> 0x${b[ind].toString(16)}`);
+				if (!rep) rep = [ind, a[ind], b[ind], name];
+			}
+		}
+		return rep;
+	}
+	
 }
 
 class AccessSinglePatch extends AccessPatch {
@@ -228,6 +267,16 @@ class AccessSinglePatch extends AccessPatch {
 			if (!this._complete) res += " <incomplete>";
 		}
 		return res;
+	}
+	
+	clear() {
+		this.__A = undefined;
+		this.__B = undefined;	
+		this._complete = false;
+	}
+	
+	save() {
+		return {__A : this.__A, __B: this.__B};
 	}
 	
 	fillFromSysex(sx) {
@@ -254,6 +303,19 @@ class AccessSinglePatch extends AccessPatch {
 		pts.append(this.__B);
 		return pts;
 	}
+
+	compare(pat) {
+		// Partameters__A[1..3], seem to be controller values and may differ
+		// Paramter __A[0] ist the sound version, different sound versions are not comparable
+		if (this.__A[0] != pat.__A[0]) return `Sound version changed from ${pat.__A[0]} to ${this.__A[0]}, not comparable`;
+		this.__A[1] = pat.__A[1];		
+		this.__A[2] = pat.__A[2];		
+		this.__A[3] = pat.__A[3];
+		let rep = this._comparePart(pat.__A, this.__A, undefined, '__A');
+		rep = this._comparePart(pat.__B, this.__B, rep, '__B');			
+		if (!rep) return "All bytes correctly compared equal";
+		else return `Byte ${rep[0]} of ${rep[3]} changed from 0x${rep[1].toString(16)} to 0x${rep[2].toString(16)}`;
+	}
 }
 
 class AccessMultiPatch extends AccessPatch {
@@ -264,6 +326,15 @@ class AccessMultiPatch extends AccessPatch {
 		var res = "";
 		this.__C.slice(3,14).reduce((total, val) => {res += String.fromCharCode(val);});
 		return res;
+	}
+	
+	clear() {
+		this.__C = undefined;
+		this._complete = false;
+	}
+	
+	save() {
+		return {__C : this.__C};
 	}
 	
 	fillFromSysex(sx) {
@@ -286,6 +357,13 @@ class AccessMultiPatch extends AccessPatch {
 			pts.append([1, pnum]);	// access has only one multi bank
 		pts.append(this.__C);
 		return pts;
+	}
+	
+	compare(pat) {
+		//if (this.__C[0] != pat.__C[0]) return `Sound version changed from ${pat.__C[0]} to ${this.__C[0]}, not comparable`;
+		let rep = this._comparePart(pat.__C, this.__C, undefined, '__C');
+		if (!rep) return "All bytes correctly compared equal";
+		else return `Byte ${rep[0]} of ${rep[3]} changed from 0x${rep[1].toString(16)} to 0x${rep[2].toString(16)}`;
 	}
 }
 
