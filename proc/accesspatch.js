@@ -360,7 +360,6 @@ class AccessMultiPatch extends AccessPatch {
 	}
 	
 	compare(pat) {
-		//if (this.__C[0] != pat.__C[0]) return `Sound version changed from ${pat.__C[0]} to ${this.__C[0]}, not comparable`;
 		let rep = this._comparePart(pat.__C, this.__C, undefined, '__C');
 		if (!rep) return "All bytes correctly compared equal";
 		else return `Byte ${rep[0]} of ${rep[3]} changed from 0x${rep[1].toString(16)} to 0x${rep[2].toString(16)}`;

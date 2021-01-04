@@ -1,12 +1,12 @@
 import 'jasmine';
 
 import { Ensure, includes, property, isGreaterThan, Check, equals, not } from '@serenity-js/assertions';
-import { actorCalled, Duration, engage, Log, Loop, Task } from '@serenity-js/core';
-import { Navigate, Website, Target, Click, Switch, Text, Enter, Attribute, Wait } from '@serenity-js/protractor';
-import {by, } from 'protractor';
+import { actorCalled, Duration, engage, Log, Loop, Task, trim } from '@serenity-js/core';
+import { Navigate, Website, Target, Click, Switch, Text, Enter, Wait, TakeScreenshot, Attribute } from '@serenity-js/protractor';
+import { by } from 'protractor';
 import {Actors} from '../src';
 import * as helpers from '../src/helpers';
-import * as rest from '../src/rest';
+import * as dragndrop from '../src/dragndrop';
 import { TargetElements, TargetNestedElements } from '@serenity-js/protractor/lib/screenplay/questions/targets';
 
 export {SynthCommon};
@@ -20,8 +20,8 @@ class SynthRoland {
 	static FilePatches = Target.all('FilePatches').located(by.className('fpname'));	
 }
 
-class SynthCommon {
-	
+class SynthCommon {	
+	static Clipboard = Target.the('Clipboard').located(by.id('c'));
 	static FileBox = Target.the('FileBox').located(by.id('file'));	
 	static Result = Target.the('message line').located(by.id('Result'));
 	static InputFileName = Target.the('InputFileName').located(by.id('fname'));
@@ -35,7 +35,7 @@ var globalScope = global as any;
 globalScope.jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000000;
 
 //const picked = Pick.from<ElementFinder, ElementArrayFinder>(SynthCommon.FileBankButtons);
-
+//const picked = Pick.from<ElementFinder, ElementArrayFinder>(SynthRoland.FilePatches);
 
 const readSoundFile = () =>
 	Task.where(`#actor treads a file of sound patches`,
@@ -47,8 +47,10 @@ const readSoundFile = () =>
 const testSimplePatchTransfer = (FilePatches: TargetElements) =>
 	Task.where(`#actor transfers patches and checks their integrity`,
 			Loop.over(FilePatches).to(
+				/*
 				rest.SendMoveRequest(helpers.getConfigString(Website.title(), 'name'),
-					Attribute.of(Loop.item()).called('id')),
+					Attribute.of(Loop.item()).called('id')),*/
+				dragndrop.DragAndDrop(Loop.item()).onto(SynthCommon.Clipboard),
 				Click.on(SynthCommon.TestButton),
 				Wait.for(Duration.ofSeconds(1)),
 				Check.whether(Text.of(SynthCommon.Result), includes('changed from'))
@@ -65,15 +67,17 @@ const testMultiPatchTransfer = (FilePatches: TargetNestedElements) =>
 				helpers.rememberTheButton(Loop.item()),
 				//Log.the(Attribute.of(Loop.item()).called('id'), helpers.BankLoopItem.getInstance()),   
 				Loop.over(FilePatches).to(
-					rest.SendMoveRequest(helpers.getConfigString(Website.title(), 'name'),
-						helpers.moveSpecFromItem(Loop.item())),
-					Wait.for(Duration.ofSeconds(1)),
-					Click.on(SynthCommon.TestButton),
-					Wait.until(Text.of(SynthCommon.Result), not(equals(''))),
-					Check.whether(Text.of(SynthCommon.Result), not(includes('compared equal')))
+					Check.whether(Attribute.of(Loop.item()).called('draggable'), equals('true'))
 						.andIfSo(
-							Log.the(Text.of(Loop.item()), Text.of(SynthCommon.Result)),
+						dragndrop.DragAndDrop(Loop.item()).onto(SynthCommon.Clipboard),
+						Wait.for(Duration.ofSeconds(1)),
+						Click.on(SynthCommon.TestButton),
+						Wait.until(Text.of(SynthCommon.Result), not(equals(''))),
+						Check.whether(Text.of(SynthCommon.Result), not(includes('compared equal')))
+							.andIfSo(
+								Log.the(Text.of(Loop.item()), Text.of(SynthCommon.Result)),
 						),
+					),
 				), 
 			),
 		);
@@ -84,8 +88,8 @@ describe('Midi Patch Manager', () => {
 
     beforeEach(() => engage(new Actors()));
 
-	
-	it(`gives us a choice of synths`, () =>
+
+	xit(`gives us a choice of synths`, () =>
         actorCalled('Jasmine')
 			.attemptsTo(
 		        Navigate.to('http://localhost:10532/index.html'),
@@ -102,7 +106,7 @@ describe('Midi Patch Manager', () => {
 			)
 	);
 
-	it('safely sends and receives Roland patches', () =>
+	xit('safely sends and receives Roland patches', () =>
         actorCalled('Jasmine')
 		.attemptsTo(
             Navigate.to('http://localhost:10532/Synths/Roland D50.html'),
