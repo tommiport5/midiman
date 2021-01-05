@@ -1,0 +1,8 @@
+Test Checklist.docx
+docs/*
+images/202009_112109.jpg
+
+# artifacts
+node_modules
+debug.log
+

@@ -382,18 +382,19 @@ class KorgPatch {
 	 * checks, if a round trip thru the synth changes the clipboard patch
 	 */
 	test(mIn, mOut, mChan, postdat) {
-		Sysex.trace = true;
+		//Sysex.trace = true;
+		console.log(`Testing ${this.patchname}`);
 		return new Promise((resolve,reject) => {
 			// let iData = _convertMidi2Int(_convertInt2Midi(this.__sd));
 			let save = this.__sd;
-			console.log("Writing clipboard to synth");
+			//console.log("Writing clipboard to synth");
 			this.writeToSynth(mIn, mOut, mChan)
 				.then(() => {
-					console.log("Reading back");
+					//console.log("Reading back");
 					return this.readFromSynth(mIn, mOut, mChan);
 				})
 				.then(() => {
-					console.log("Comparing");
+					//console.log("Comparing");
 					resolve(this.compare(save));
 				})
 				.catch((e) => {

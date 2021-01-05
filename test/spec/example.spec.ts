@@ -1,8 +1,8 @@
 import 'jasmine';
 
 import { Ensure, includes, property, isGreaterThan, Check, equals, not } from '@serenity-js/assertions';
-import { actorCalled, Duration, engage, Log, Loop, Task, trim } from '@serenity-js/core';
-import { Navigate, Website, Target, Click, Switch, Text, Enter, Wait, TakeScreenshot, Attribute } from '@serenity-js/protractor';
+import { actorCalled, Duration, engage, Log, Loop, Task } from '@serenity-js/core';
+import { Navigate, Website, Target, Click, Switch, Text, Enter, Wait, Attribute } from '@serenity-js/protractor';
 import { by } from 'protractor';
 import {Actors} from '../src';
 import * as helpers from '../src/helpers';
@@ -38,10 +38,10 @@ globalScope.jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000000;
 //const picked = Pick.from<ElementFinder, ElementArrayFinder>(SynthRoland.FilePatches);
 
 const readSoundFile = () =>
-	Task.where(`#actor treads a file of sound patches`,
+	Task.where(`#actor reads a file of sound patches`,
 			Enter.theValue(helpers.getConfigString(Website.title(), 'sysex')).into(SynthCommon.InputFileName),	
 			Click.on(SynthCommon.ReadFileButton),
-			Wait.until(Text.of(SynthCommon.Result), includes('Successfull')),
+			Wait.upTo(Duration.ofSeconds(15)).until(Text.of(SynthCommon.Result), includes('Successfull')),
 );
  
 const testSimplePatchTransfer = (FilePatches: TargetElements) =>
@@ -114,10 +114,18 @@ describe('Midi Patch Manager', () => {
 			testSimplePatchTransfer(SynthRoland.FilePatches),
         ));
 
-	it('safely sends and receives access patches', () =>
+	xit('safely sends and receives access patches', () =>
         actorCalled('Jasmine')
 		.attemptsTo(
             Navigate.to('http://localhost:10532/Synths/access virus b.html'),
+			readSoundFile(),
+ 			testMultiPatchTransfer(SynthCommon.FilePatches),
+       ));
+
+	it('safely sends and receives access patches', () =>
+        actorCalled('Jasmine')
+		.attemptsTo(
+            Navigate.to('http://localhost:10532/Synths/Korg Triton.html'),
 			readSoundFile(),
  			testMultiPatchTransfer(SynthCommon.FilePatches),
        ));
