@@ -2,8 +2,8 @@ import 'jasmine';
 
 import { Ensure, includes, property, isGreaterThan, Check, equals, not } from '@serenity-js/assertions';
 import { actorCalled, Duration, engage, Log, Loop, Task } from '@serenity-js/core';
-import { Navigate, Website, Target, Click, Switch, Text, Enter, Wait, Attribute } from '@serenity-js/protractor';
-import { by } from 'protractor';
+import { Navigate, Website, Target, Click, Switch, Text, Enter, Wait, Attribute, Pick } from '@serenity-js/protractor';
+import { by, ElementArrayFinder, ElementFinder } from 'protractor';
 import {Actors} from '../src';
 import * as helpers from '../src/helpers';
 import * as dragndrop from '../src/dragndrop';
@@ -34,7 +34,7 @@ class SynthCommon {
 var globalScope = global as any;
 globalScope.jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000000;
 
-//const picked = Pick.from<ElementFinder, ElementArrayFinder>(SynthCommon.FileBankButtons);
+const picked = Pick.from<ElementFinder, ElementArrayFinder>(SynthCommon.FileBankButtons);
 //const picked = Pick.from<ElementFinder, ElementArrayFinder>(SynthRoland.FilePatches);
 
 const readSoundFile = () =>
@@ -62,9 +62,9 @@ const testSimplePatchTransfer = (FilePatches: TargetElements) =>
 
 const testMultiPatchTransfer = (FilePatches: TargetNestedElements) =>
 	Task.where(`#actor transfers patches and checks their integrity`,
-			Loop.over(SynthCommon.FileBankButtons).to(
-				Click.on(Loop.item()),
-				helpers.rememberTheButton(Loop.item()),
+			//Loop.over(SynthCommon.FileBankButtons).to(
+				Click.on(picked.get(0)),	//Loop.item()
+				helpers.rememberTheButton(picked.get(0)),	//Loop.item
 				//Log.the(Attribute.of(Loop.item()).called('id'), helpers.BankLoopItem.getInstance()),   
 				Loop.over(FilePatches).to(
 					Check.whether(Attribute.of(Loop.item()).called('draggable'), equals('true'))
@@ -73,13 +73,13 @@ const testMultiPatchTransfer = (FilePatches: TargetNestedElements) =>
 						Wait.for(Duration.ofSeconds(1)),
 						Click.on(SynthCommon.TestButton),
 						Wait.until(Text.of(SynthCommon.Result), not(equals(''))),
-						Check.whether(Text.of(SynthCommon.Result), not(includes('compared equal')))
+						Check.whether(Text.of(SynthCommon.Result), not(includes('compared equ')))
 							.andIfSo(
 								Log.the(Text.of(Loop.item()), Text.of(SynthCommon.Result)),
 						),
 					),
 				), 
-			),
+		//	),
 		);
  
 

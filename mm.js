@@ -331,6 +331,19 @@ handlePost('/comparePatch', (postdat, res) => {
 	});
 });
 
+handlePost('/changeProg', (postdat, res) => {
+	getInstance(postdat.Mdl).changeProg(postdat).then((answ) => {
+		var result = {result:answ};
+		res.setHeader('Content-Type', 'audio/x-midi');
+		res.setHeader("cache-control", "no-store");
+		res.end(JSON.stringify(result));
+	}).catch((err) =>{
+		let Msg = 'Could not changeProg, ' + err;
+		res.setHeader('Content-Type', 'text/json; charset=utf-8');
+		res.setHeader("cache-control", "no-store");
+		res.end('{"result":"' + Msg + '"}');
+	});
+});
 
 /**
  * SynthPage.html

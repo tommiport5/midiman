@@ -5,10 +5,15 @@
  */
  
 var _trace = false;
+var _debug = false;
 
 class Sysex {
 	static set trace(trc) {
 		_trace = trc;
+	}
+	// use carefully, can produce lots of output
+	static set debug(dbg) {
+		_debug = dbg;
 	}
 	constructor(Brand, Channel, Model, Command) {
 		this.rawData = [];
@@ -54,7 +59,6 @@ class Sysex {
 	}
 	
 	listen(inp, time=10000) {
-		var This = this;
 		return new Promise((resolve, reject) => {
 			try {
 				var tmo;
@@ -64,11 +68,12 @@ class Sysex {
 					// for coherence with send data, we must shift the first four to the resp class members.
 					// A UInt8Array is not an array, so it has no shift() member :-(
 					try {
-						This.rawData = Array.from(ev.data);
-						if (_trace) console.log("receiving sysex: " + This.rawData.slice(1,17).map((val) => {return "0x" + val.toString(16);})); 
+						this.rawData = Array.from(ev.data);
+						if (_debug) this.logDebug(this.rawData);
+						else if (_trace) console.log("receiving sysex: " + this.rawData.slice(1,17).map((val) => {return "0x" + val.toString(16);})); 
 						inp.removeListener("sysex");
-						This._parseTelegram();
-						resolve(This);
+						this._parseTelegram();
+						resolve(this);
 					} catch(e) {
 						console.log(e);
 						reject(e);
@@ -82,6 +87,27 @@ class Sysex {
 				reject("Cannot add listener: " + e);
 			}
 		});
+	}
+	
+	logDebug(unparsed) {
+		let lin;
+		if (unparsed)
+			lin = unparsed;
+		else
+			lin = [0xf0].concat(this._linear(), [0xf7]);
+		for (let i=0; i<lin.length; i+=16) {
+			let line = i.toString(16);
+			let lead = 6-line.length;
+			if (lead > 0) line = "0".repeat(lead) + line;
+			line += ": ";
+			for (let j=0; j<16; j++) 
+				if (i+j < lin.length) {
+					let hex = lin[i+j].toString(16)
+					if (hex.length < 2) hex = '0' + hex;
+					line +=  hex + ' ';
+				}
+			console.log(line);
+		}
 	}
 
 	asSendData() {
@@ -98,7 +124,8 @@ class Sysex {
 	}
 	
 	send(out) {
-		if (_trace) console.log("sending sysex:   " + this.asSendData().slice(0,16));
+		if (_debug) this.logDebug();
+		else if (_trace) console.log("sending sysex:   " + this.asSendData().slice(0,16));
 		var sx = this._buildTelegram();
 		out.sendSysex(sx[0], sx[1]);
 	}

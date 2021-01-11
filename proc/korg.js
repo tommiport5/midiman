@@ -254,6 +254,13 @@ module.exports = class Korg {
 		}
 	}
 	
+	changeProg(postdat) {
+		let to = postdat.to;
+		if (to[0] == 'f') return Promise.resolve("Cannot change prog in file bank");
+		if (to[0] == 's' && this.SynthPatches == undefined) return Promise.resolve("SynthPatches undefined!");
+		return Patch.changeProg(this.mIn, this.mOut, this.mChan, to.substr(1));
+	}
+		
 	test(postdat) {
 		if (this._clipboard == undefined) return Promise.reject(new Error("Clipboard empty"));
 		else return this._clipboard.test(this.mIn, this.mOut, this.mChan, postdat);

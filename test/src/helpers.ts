@@ -10,7 +10,7 @@ import { Attribute, Target } from '@serenity-js/protractor';
 const PageDescriptions = [
 	{name: 'Roland D50', sysex: 'C:\\Users\\Dad\\Documents\\SysEx\\D50\\Extern\\SYNTH4&5.D50'},
 	{name: 'access virus b', sysex: 'C:\\Users\\Dad\\Documents\\SysEx\\virus\\Basic.ref.virus.syx'},
-	{name: 'Korg Triton', sysex: 'C:\\Users\\Dad\\Documents\\SysEx\\Korg\\BasicTE.ref.syx'},
+	{name: 'Korg Triton', sysex: 'C:\\Users\\Dad\\Documents\\SysEx\\Korg\\FactorySettings.syx'},
 ];	
 
 

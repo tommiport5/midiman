@@ -76,7 +76,11 @@ class PatId {
 		return sv + num;
 	}
 }
-	
+
+// don't let the 'this' confuse you here, it is resolved dynamically
+// https://www.quirksmode.org/js/this.html
+function dblclicker() {onDoubleClick(this.id);}	
+
 /**
  * class Navi
  * organizes the navigation and drag'n'drop on the patch tables.
@@ -197,6 +201,7 @@ class Navi {
 		this._highlightButton(patid);
 		if (this._patches == undefined || this.patches[patid.bank] == undefined) {
 			for (;i<arr.length;) {
+				arr[i].removeEventListener('dblclick', dblclicker);
 				arr[i++].innerText = "";
 			}
 			return;
@@ -218,14 +223,17 @@ class Navi {
 		}
 		if (tabdat) {
 			tabdat.forEach((dt) => {
+				arr[i].removeEventListener('dblclick', dblclicker);
 				arr[i].innerText = dt;
 				arr[i].setAttribute("draggable", true);
 				// build the id for the fields, we also need the bank type prefix to remeber it on the clipboard
-				arr[i].id = this._buttonPrefix() + patid.BankTypePrefix + i;	
+				arr[i].id = this._buttonPrefix() + patid.BankTypePrefix + i;
+				arr[i].addEventListener('dblclick', dblclicker);
 				arr[i++].setAttribute("ondragstart","dragStart(event)");
 			});
 		} 
 		for (;i<arr.length;) {
+			arr[i].removeEventListener('dblclick', dblclicker);
 			arr[i].innerText = "";
 			arr[i].setAttribute("draggable", false);
 			arr[i++].removeAttribute("ondragstart");
@@ -517,6 +525,14 @@ function drop(ev) {
 	});
 }
 
+function onDoubleClick(id) {
+	let Settings = {Mdl: Model, to:Navi.serverFromTarget(id)};
+	getJsonParam('/changeProg', JSON.stringify(Settings), (data) => {
+		document.getElementById("Result").innerText = data.result;
+	});
+}
+	
+
 function prepareSwitchTable() {
 	SynthPatches.prepareSwitchTable("ssstab", NetSingleBanks);
 	SynthPatches.prepareSwitchTable("smstab", NetMultiBanks);
@@ -564,15 +580,6 @@ function displayForm() {
 	document.getElementById("swapbutton").addEventListener('click',swap);
 	document.getElementById("test").addEventListener('click',test);
 }
-
-function test() {
-	let Settings = {Mdl: Model};
-	document.getElementById("Result").innerText = "";
-	getJsonParam('/test', JSON.stringify(Settings), (data) => {
-		document.getElementById("Result").innerText = data.result;
-	});
-}
-
 
 window.addEventListener("load", displayForm);
 window.addEventListener("load", prepareSwitchTable);

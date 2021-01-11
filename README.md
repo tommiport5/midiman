@@ -37,3 +37,12 @@ Contributions are welcome! Clone the project from https://github.com/tommiport5/
 ## HISTORY
 1. 0.8.0 Basic functionality
 1. 0.8.1 Improvements for  access virus: Add the multipatches, display the overlapping patches 6x.
+1. 0.8.2 Added Korg Triton Extreme and automated tests with serenity.js
+
+## CAVEATS
+
+There is a bug in the MIDI implementation of the Korg Triton Extreme. For whatever reason,it modifies the routing of the valve effect from "3/4 BUS" to "Final".
+But when the insert effect routing  sends the output of the last effect in the chain to 3/4, there is no sound on the output.
+You can verify that with MidiOx, just echo the sysex  for the factory program A015 "Wah Wurly 2(SW1)" back to the synth. But be careful, this overwrites the sound without warning.
+
+**midiman** implements a workaround and routes all the internal effects that are not chained to the L/R output.

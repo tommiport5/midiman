@@ -21,13 +21,14 @@ const _NOPP = 0x6e;
 const _DLC = 0x23;
 
 const _MR = 0x12;
-const _MD = 0x42;
 const _PPDR = 0x1C;
-const _PPD = 0x4c;
-const _CPPD = 0x40;
 const _CPDR = 0x1D;
-const _CPD = 0x4d;
+const _CPPD = 0x40;
+const _MD = 0x42;
 const _CCPD = 0x49;
+const _PPD = 0x4c;
+const _CPD = 0x4d;
+const __MC = 0x4e;
 
 function delay(ms) {
 	return new Promise((resolve) => {
@@ -35,6 +36,13 @@ function delay(ms) {
 			resolve();
 		}, ms);
 	});
+}
+	
+function hexblock(val) {
+		let res = val.toString(16);
+		if (res.length < 2) res =  ' 0x0' + res;
+		else res = ' 0x' + res;
+		return res;
 }
 
 function _getMidiLength(iLng) {
@@ -147,13 +155,57 @@ class KorgPatch {
 		else
 			return NetMultiBanks.indexOf(letter) + NetSingleBanks.length;
 	}
+	
+	static _sendProgChange(mOut, mChan, to) {
+		let bn = to.charCodeAt(1) - "A".charCodeAt(0);
+		if (bn > 4) bn += 1;
+		let s1 = 0xb0 + mChan;
+		let s2 = 0xc0 + mChan;
+		//console.log(/*s1,0,0,*/hexblock(s1),"0x20",hexblock(bn),hexblock(s2),hexblock(Number(to.substr(2))));				
+		mOut/*.send(s1, [0,0])*/.send(s1,[0x20,bn]).send(s2, [Number(to.substr(2))]);
+	}
+	
+	/**
+	 * changeProg
+	 * triggers a program change to the desired program /combi number.
+	 * This may send a mode change first.
+	 */
+	static changeProg(mIn, mOut, mChan, to) {
+		return new Promise((resolve,reject) => {
+			//console.log(`Change to ${to}`);
+			let combi = to[0]=='M'?0:2;
+			KorgPatch.getDeviceMode(mIn, mOut, mChan).then((dm) => {
+				console.log(`dm = ${dm}`); 
+				if (combi == dm[0]) {
+					KorgPatch._sendProgChange(mOut, mChan, to);
+					resolve("Ok");
+				} else {
+					let mc = new Sysex(mChan, __MC);
+					let ds = new Sysex();
+					let Ret = ds.listen(mIn);
+					mc.append([combi]);
+					mc.send(mOut);
+					Ret.then((sx) => {
+						//console.log("0x" + sx.command.toString(16));
+						setTimeout(() => {
+							KorgPatch._sendProgChange(mOut, mChan, to);
+							resolve("Ok");
+						}, 1000);
+					});
+				}
+			}).catch(e => {
+				reject(e);
+			});
+		});
+	}
+		
 
 	/**
 	 * readFromSynth
 	 * reads the current (single) edit patch into this object
 	 */
 	readFromSynth(mIn, mOut, mChan) {
-		//Sysex.trace = true;
+		//Sysex.debug = true;
 		return new Promise((resolve,reject) => {
 			var rd = new Sysex(mChan, this._CurParDumpRequest);
 			var ds = new Sysex();
@@ -164,7 +216,6 @@ class KorgPatch {
 				if (sx.raw.shift()) console.log("Got MOSS patch instead of PCM patch");
 				this.__sd = _convertMidi2Int(sx.raw);
 				this._complete = true;
-				this.sanitize();
 				resolve("ok");
 			}).catch((e) =>{
 				console.log('exception occured in read from synth: ' + e);
@@ -178,7 +229,7 @@ class KorgPatch {
 	 * writes this patch into the current edit patch on the synth
 	 */
 	writeToSynth(mIn, mOut, mChan) {
-		//Sysex.trace = true;
+		//Sysex.debug = true;
 		if (!this._complete) {
 			return Promise.reject("no patch");
 		}
@@ -188,6 +239,7 @@ class KorgPatch {
 				var ds = new Sysex;
 				var Ret = ds.listen(mIn);			
 				dump.raw = [0];
+				this.sanitize();
 				dump.append(_convertInt2Midi(this.__sd));
 				dump.send(mOut);
 				Ret.then((sx) => {
@@ -361,21 +413,6 @@ class KorgPatch {
 		return dump;
 	}
 
-	// performs the actual comparison
-	compare(pat) {
-		let rep;
-		if (!pat) return "Comparison data undefined";
-		if (pat.length != this.dlength) console.log(`Size mismatch: ${pat.length} instead of ${this.dlength}`);
-		let size = pat.length < this.dlength ? pat.length : this.dlength;
-		for (let ind=0; ind < size; ind ++) {
-			if (this.__sd[ind] != pat[ind]) {
-				console.log(`${ind}: 0x${pat[ind].toString(16)} -> 0x${this.__sd[ind].toString(16)}`);
-				if (!rep) rep = [ind, pat[ind], this.__sd[ind]];
-			}
-		}
-		if (!rep) return "All bytes correctly compared equal";
-		else return `Byte ${rep[0]} changed from 0x${rep[1].toString(16)} to 0x${rep[2].toString(16)}`;
-	}
 	
 	/**
 	 * test
@@ -385,23 +422,38 @@ class KorgPatch {
 		//Sysex.trace = true;
 		console.log(`Testing ${this.patchname}`);
 		return new Promise((resolve,reject) => {
-			// let iData = _convertMidi2Int(_convertInt2Midi(this.__sd));
 			let save = this.__sd;
-			//console.log("Writing clipboard to synth");
 			this.writeToSynth(mIn, mOut, mChan)
 				.then(() => {
-					//console.log("Reading back");
 					return this.readFromSynth(mIn, mOut, mChan);
 				})
 				.then(() => {
-					//console.log("Comparing");
-					resolve(this.compare(save));
+					resolve(this.diffTo(save));
 				})
 				.catch((e) => {
 					reject(e);
 				});
 		});
 	} 
+	
+	// performs the actual comparison
+	_diffTo(pat, minor) {
+		let rep;
+		let minor_fail = false;
+		if (!pat) return "Comparison data undefined";
+		if (pat.length != this.dlength) console.log(`Size mismatch: ${pat.length} instead of ${this.dlength}`);
+		let size = pat.length < this.dlength ? pat.length : this.dlength;
+		for (let ind=0; ind < size; ind ++) {
+			if (this.__sd[ind] != pat[ind]) {
+				console.log(`${ind}: 0x${pat[ind].toString(16)} -> 0x${this.__sd[ind].toString(16)}`);
+				if (minor && minor.includes(ind)) {minor_fail = true;  continue;}
+				if (!rep) rep = [ind, pat[ind], this.__sd[ind]];
+			}
+		}
+		if (rep) return {changed:2, text: `Byte ${rep[0]} changed from 0x${rep[1].toString(16)} to 0x${rep[2].toString(16)}`};
+		if (minor_fail) return {changed:1};
+		return {changed:0};
+	}
 }
 	
 
@@ -458,21 +510,30 @@ class KorgSinglePatch extends KorgPatch {
 	 */
 	sanitize() {
 		if (!this.__sd) return; // nothing to fix
-		switch (this.__sd[34]) {
+/*		
+		let vp = this.__sd.slice(34,36).concat(this.__sd.slice(58,60), this.__sd.slice(82,84), this.__sd.slice(106,108), this.__sd.slice(130,132));
+		console.log('Valve effect parameters: ' +  vp.map(hexblock));
+		console.log('Master effect parameters: ' +  this.__sd.slice(136,154).map(hexblock));
+*/
+		for (let ieff=16; ieff <= 112; ieff += 24) {
+			if ((this.__sd[ieff+17] & 0x80) == 0) {
+				if (this.__sd[ieff+21] = 6)
+					this.__sd[ieff+21] = 0;
+			}
+		}
+	}
+	
+	// filter out the known changes from the valve effect
+	diffTo(pat) {
+		const valve = [34,35,58,59,82,83,106,107,130,131];
+		let res = this._diffTo(pat, valve);
+		switch (res.changed) {
 			case 0:
+				return "All bytes correctly compared equal";
 			case 1:
-			case 3:
-				//ok
-				break;
+				return "Patch compared equivalent";
 			case 2:
-				this.__sd[34] = 1;
-				this.__sd[35] = 0;
-				this.__sd[130] = 0x7f;
-				this.__sd[131] = 0x7f;
-				break;
-			default:
-				this.__sd[34] = 0;
-				break;
+				return res.text;
 		}
 	}
 }
@@ -524,6 +585,18 @@ class KorgMultiPatch extends KorgPatch {
 
 	sanitize() {
 		// nothing to fix (so far)
+	}
+	
+	diffTo(pat) {
+		res = this._diffTo(pat);
+		switch (res.changed) {
+			case 0:
+				return "All bytes correctly compared equal";
+			case 1:
+				return "Patch compared equivalent";
+			case 2:
+				return changed.text;
+		}
 	}
 }
 
