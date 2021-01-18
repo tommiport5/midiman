@@ -40,7 +40,7 @@ module.exports = class Korg {
 			var curpat;
 			Patch.getDeviceMode(this.mIn, this.mOut, this.mChan)
 			.then((mode) => {
-				switch(mode[0]) {
+				switch(mode) {
 					case 0:
 					case 1:
 						curpat = new MultiPatch();
@@ -265,26 +265,52 @@ module.exports = class Korg {
 		if (this._clipboard == undefined) return Promise.reject(new Error("Clipboard empty"));
 		else return this._clipboard.test(this.mIn, this.mOut, this.mChan, postdat);
 	}
-
+	
 	/**
 	 * compare
-	 * compares the clipboard patch against a file
+	 * compares the current patch on the synth patch against a patch from this.SynthPatches.
+	 * This is used to test if the patches are also "corrected" by memory bank transfer
 	 */
 	compare(postdat) {
+		let to = postdat.to;
+		if (to[0] == 'f') return Promise.reject("Cannot change prog in file bank");
+		if (to[0] == 's' && this.SynthPatches == undefined) return Promise.reject("SynthPatches undefined!");
+		return new Promise((resolve,reject) => {
+			this.readCurrentPatch().then(current => {
+				let ind = Patch.bankLetter2Index(to[1],to[2]);
+				let comp = this.SynthPatches[ind].pat[Number(to.substr(3))];
+				if (current.isA() != comp.isA()) reject(`Current patch is a ${current.isA()} whereas ${comp.patchname} is a ${comp.isA()}`);
+				console.log(`Comparing current patch from ${to} (${current.patchname}) with SynthPatches[${ind}].pat[${Number(to.substr(3))}] (${comp.patchname})`);
+				resolve(current.diffTo(comp.__sd));
+			}).catch(e => {
+				reject(e);
+			});
+		});
+	}
+
+
+	/**
+	 * comparePatchToFile
+	 * compares the clipboard patch against a file
+	 * this is a korg specialty
+	 */
+	comparePatchToFile(postdat) {
 		return new Promise((resolve,reject) => {
 			if (this._clipboard == undefined) {
 				return reject(new Error("Clipboard empty"));
 			} else {
 				console.log("Comparing clipboard against selected file");
-				var start = postdat.indexOf('base64,');
+				let cont = postdat.Cont;
+				let extension = postdat.ext;
+				let start = cont.indexOf('base64,');
 				if (start == -1) reject("base64 error");
 				try {
-					var Dat = Base64.atob(postdat.slice(start+7));
+					var Dat = Base64.atob(cont.slice(start+7));
 					var DatArr = new Array(Dat.length);
 					for (var i=0; i< Dat.length; i++)
 						DatArr[i] = Dat.charCodeAt(i);
-					let ref = Patch.readFromBlob(DatArr);
-					resolve(this._clipboard.compare(ref.__sd));
+					let ref = Patch.readFromBlob(extension, DatArr);
+					resolve(this._clipboard.diffTo(ref.__sd));
 				} catch (e) {
 					reject(e);
 				}

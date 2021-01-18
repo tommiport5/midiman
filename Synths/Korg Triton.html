@@ -12,7 +12,13 @@ const Model = "Korg Triton";
 const SingleReadBanks = "ABCDE HIJKLMN";
 const MultiReadBanks =  "ABCDEHIJKLMN";
 const PagesPerRow = 4;
-
+/*
+var warn = () => setTimeout(()=>{
+	open("./KorgWarning.html","_blank");
+	window.removeEventListener(warn);
+	}, 1000);
+window.addEventListener("load", warn);
+*/
 </script>
 <script src="../ui/commonui.js"></script> 
 </head>
@@ -98,13 +104,14 @@ Combinations
 <button type="button" class="nav_item" id="readpatch">Read Current Patch</button>
 <button type="button" class="nav_item" id="writepatch">Write To Synth</button>
 <a href="/writePatch.syx?Mdl=Korg+Triton" class="button" download>Write To File</a>
+<div class="auto_test">
 <button type="button" class="nav_item" id="test">Test</button>
-<div>
 <form id="compareForm">
-<label for="cfname">File to compare (*.syx)</label>
+<label for="cfname">File to compare (*.syx|*.bin)</label>
 <input id="cfname" name="cfname" type="file">
-<button type="button" onclick="comparePatch()">Compare File</button>
+<button type="button" id="comparePatchButton" onclick="comparePatch()">Compare file to clipboard</button>
 </form>
+<button type="button" id="compareButton" onclick="compare()">Compare current patch to memory</button>
 </div>
 </div>
 <div class="framed" id="file">
@@ -114,7 +121,7 @@ Combinations
 <label for="fname">File to read (*.syx)</label>
 <input id="fname" name="fname" type="file">
 <button type="button" id="readFile">Read File</button>
-<a href="/writeFile.syx?Mdl=Korg+Triton" class="button" download>Write File</a>
+<a href="/writeFile.syx?Mdl=Korg+Triton" class="button" id="writeFile" download>Write File</a>
 </form>
 </span>
 <div class="seltab">

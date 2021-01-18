@@ -1,9 +1,23 @@
 const
-    { ArtifactArchiver } = require('@serenity-js/core'),
+    { ArtifactArchiver, StreamReporter } = require('@serenity-js/core'),
     { ConsoleReporter } = require('@serenity-js/console-reporter'),
     { Photographer, TakePhotosOfFailures, TakePhotosOfInteractions } = require('@serenity-js/protractor'),
     { SerenityBDDReporter } = require('@serenity-js/serenity-bdd'),
     isCI = require('is-ci');
+const fs = require('fs');
+
+class StreamLogReporter extends StreamReporter {
+	constructor(ws) {
+		super(ws);
+	}
+	
+	notifyOf(event) {
+		if (event.type == "ActivityRelatedArtifactGenerated") {
+			super.notifyOf(event);
+		} else 
+			super.notifyOf({"type":"nix"});
+		}
+	}
 
 exports.config = {
     baseUrl: 'http://localhost:10532',

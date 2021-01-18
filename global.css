@@ -192,3 +192,8 @@ a.button, a.button:visited {
 	border-style: outset;
 	box-shadow: 0 0 2px gray inset;
 }
+/*
+.auto_test {
+	display: none;
+}
+*/

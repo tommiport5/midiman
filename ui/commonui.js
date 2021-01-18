@@ -9,6 +9,8 @@ const ButtonPrefix = "SF";
 var NetSingleBanks = SingleReadBanks.replace(/ /g, '');
 var NetMultiBanks = MultiReadBanks.replace(/ /g, '');
 
+var LastProgramChangedTo;
+
 /**
  * class PatId
  * Generalized patch id.
@@ -462,10 +464,11 @@ function readFile() {
 }
 
 function comparePatch() {
-	var fl = new FormData(document.getElementById("compareForm")).get("cfname");
-	var rd = new FileReader();
+	let fl = new FormData(document.getElementById("compareForm")).get("cfname");
+	let rd = new FileReader();
+	let extension = fl.name.substr(fl.name.lastIndexOf('.')); 
 	rd.onloadend = function() {
-		let Settings = {Mdl: Model, Cont:rd.result};
+		let Settings = {Mdl: Model, ext: extension, Cont:rd.result};
 		getJsonParam( '/comparePatch', JSON.stringify(Settings), (data) => {
 			document.getElementById("Result").innerText = data.result;
 		});
@@ -526,12 +529,21 @@ function drop(ev) {
 }
 
 function onDoubleClick(id) {
+	document.getElementById("Result").innerText = "";	
 	let Settings = {Mdl: Model, to:Navi.serverFromTarget(id)};
 	getJsonParam('/changeProg', JSON.stringify(Settings), (data) => {
+		LastProgramChangedTo = Settings.to;
 		document.getElementById("Result").innerText = data.result;
 	});
 }
 	
+function compare() {
+	document.getElementById("Result").innerText = "";	
+	let Settings = {Mdl: Model, to:LastProgramChangedTo};
+	getJsonParam('/compare', JSON.stringify(Settings), (data) => {
+		document.getElementById("Result").innerText = data.result;
+	});
+}
 
 function prepareSwitchTable() {
 	SynthPatches.prepareSwitchTable("ssstab", NetSingleBanks);

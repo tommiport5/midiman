@@ -318,9 +318,9 @@ handlePost('/test', (postdat, res) => {
 });
 
 handlePost('/comparePatch', (postdat, res) => {
-	getInstance(postdat.Mdl).compare(postdat.Cont).then((answ) => {
+	getInstance(postdat.Mdl).comparePatchToFile(postdat).then((answ) => {
 		var result = {result:answ};
-		res.setHeader('Content-Type', 'audio/x-midi');
+		res.setHeader('Content-Type', 'text/plain');
 		res.setHeader("cache-control", "no-store");
 		res.end(JSON.stringify(result));
 	}).catch((err) =>{
@@ -331,15 +331,29 @@ handlePost('/comparePatch', (postdat, res) => {
 	});
 });
 
+handlePost('/compare', (postdat, res) => {
+	getInstance(postdat.Mdl).compare(postdat).then((answ) => {
+		var result = {result:answ};
+		res.setHeader('Content-Type', 'text/plaini');
+		res.setHeader("cache-control", "no-store");
+		res.end(JSON.stringify(result));
+	}).catch((err) =>{
+		let Msg = 'Could not compare file, ' + err;
+		res.setHeader('Content-Type', 'text/plain');
+		res.setHeader("cache-control", "no-store");
+		res.end('{"result":"' + Msg + '"}');
+	});
+});
+
 handlePost('/changeProg', (postdat, res) => {
 	getInstance(postdat.Mdl).changeProg(postdat).then((answ) => {
 		var result = {result:answ};
-		res.setHeader('Content-Type', 'audio/x-midi');
+		res.setHeader('Content-Type', 'text/plain');
 		res.setHeader("cache-control", "no-store");
 		res.end(JSON.stringify(result));
 	}).catch((err) =>{
 		let Msg = 'Could not changeProg, ' + err;
-		res.setHeader('Content-Type', 'text/json; charset=utf-8');
+		res.setHeader('Content-Type', 'text/plain');
 		res.setHeader("cache-control", "no-store");
 		res.end('{"result":"' + Msg + '"}');
 	});

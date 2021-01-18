@@ -20,15 +20,15 @@ var Sysex = Combi.kg;
 const _NOPP = 0x6e;
 const _DLC = 0x23;
 
-const _MR = 0x12;
 const _PPDR = 0x1C;
 const _CPDR = 0x1D;
 const _CPPD = 0x40;
-const _MD = 0x42;
 const _CCPD = 0x49;
 const _PPD = 0x4c;
 const _CPD = 0x4d;
-const __MC = 0x4e;
+
+const LengthOfProg = 540;
+const LengthOfCombi = 448;
 
 function delay(ms) {
 	return new Promise((resolve) => {
@@ -104,6 +104,58 @@ function _handleResponse(Ret, mIn) {
 	});
 }
 
+/**
+ * class Mode
+ * handles the operating mode of the synth
+ */
+class Mode {
+	constructor() {
+	}
+	static #mode = undefined;
+	static #MR = 0x12;
+	static #MD = 0x42;
+	static #MC = 0x4e;
+	static get(mIn, mOut, mChan) {
+		if (Mode.#mode) return Promise.resolve(Mode.#mode);
+		return new Promise((resolve, reject) =>  {
+			var mr = new Sysex(mChan, Mode.#MR);
+			var ds = new Sysex();
+			var Ret = ds.listen(mIn);
+			mr.send(mOut);
+			Ret.then((sx) => {
+				if (sx.command  == Mode.#MD) {
+					Mode.#mode = sx.raw[0];
+					resolve(Mode.#mode);
+				} else {
+					reject(`Received ${sx.command.toString(16)} istead of ${Mode.#MD.toString(16)}`);
+				}
+			})
+			.catch ((e) => {
+				reject(e);
+			});
+		});
+	}
+	static set(mIn, mOut, mChan, new_mode) {
+		return new Promise((resolve, reject) =>  {
+			let mc = new Sysex(mChan, Mode.#MC);
+			let ds = new Sysex();
+			let Ret = ds.listen(mIn);
+			mc.append([new_mode]);
+			mc.send(mOut);
+			Ret.then((sx) => {
+				//console.log("0x" + sx.command.toString(16));
+				setTimeout(() => {
+					Mode.#mode = new_mode;
+					resolve("Ok");
+				}, 1000);
+			});
+		});
+	}
+}
+	
+	
+	
+
 class KorgPatch {
 	constructor() {
 		this._complete = false;
@@ -126,24 +178,6 @@ class KorgPatch {
 		return res;
 	}
 	
-	static getDeviceMode(mIn, mOut, mChan) {
-		return new Promise((resolve, reject) =>  {
-			var mr = new Sysex(mChan, _MR);
-			var ds = new Sysex();
-			var Ret = ds.listen(mIn);
-			mr.send(mOut);
-			Ret.then((sx) => {
-				if (sx.command  == _MD)
-					resolve(sx.raw);
-				else
-					reject(`Received ${sx.command.toString(16)} istead of ${_MD.toString(16)}`);
-			})
-			.catch ((e) => {
-				reject(e);
-			});
-		});
-	}		
-	
 	/**
 	 * bankLetter2Index
 	 * Converts the bank letter of a bank of type btp into the internal address,
@@ -154,6 +188,10 @@ class KorgPatch {
 			return NetSingleBanks.indexOf(letter);
 		else
 			return NetMultiBanks.indexOf(letter) + NetSingleBanks.length;
+	}
+	
+	static getDeviceMode(mIn, mOut, mChan) {
+		return Mode.get(mIn, mOut, mChan);
 	}
 	
 	static _sendProgChange(mOut, mChan, to) {
@@ -174,24 +212,16 @@ class KorgPatch {
 		return new Promise((resolve,reject) => {
 			//console.log(`Change to ${to}`);
 			let combi = to[0]=='M'?0:2;
-			KorgPatch.getDeviceMode(mIn, mOut, mChan).then((dm) => {
-				console.log(`dm = ${dm}`); 
-				if (combi == dm[0]) {
-					KorgPatch._sendProgChange(mOut, mChan, to);
-					resolve("Ok");
-				} else {
-					let mc = new Sysex(mChan, __MC);
-					let ds = new Sysex();
-					let Ret = ds.listen(mIn);
-					mc.append([combi]);
-					mc.send(mOut);
-					Ret.then((sx) => {
-						//console.log("0x" + sx.command.toString(16));
-						setTimeout(() => {
-							KorgPatch._sendProgChange(mOut, mChan, to);
-							resolve("Ok");
-						}, 1000);
+			Mode.get(mIn, mOut, mChan).then((dm) => {
+				//console.log(`dm = ${dm}`); 
+				if (combi != dm) {
+					Mode.set(mIn, mOut, mChan, combi).then(() => {
+						this._sendProgChange(mOut, mChan, to);
+						resolve("Ok");
 					});
+				} else {
+					this._sendProgChange(mOut, mChan, to);
+					resolve("Ok");
 				}
 			}).catch(e => {
 				reject(e);
@@ -202,7 +232,7 @@ class KorgPatch {
 
 	/**
 	 * readFromSynth
-	 * reads the current (single) edit patch into this object
+	 * reads the current edit patch into this object
 	 */
 	readFromSynth(mIn, mOut, mChan) {
 		//Sysex.debug = true;
@@ -243,10 +273,11 @@ class KorgPatch {
 				dump.append(_convertInt2Midi(this.__sd));
 				dump.send(mOut);
 				Ret.then((sx) => {
-					if (sx.command  == _DLC)
+					if (sx.command  == _DLC) {
 						resolve("ok");
-					else
+					} else {
 						reject(`Could not write data, received 0x${sx.command.toString(16)}`);
+					}
 				});
 			} catch(e) {
 				console.log('exception occured in write to synth: ' + e);
@@ -268,16 +299,29 @@ class KorgPatch {
 	 * Reads a program or combi patch from a file that contains only one patch
 	 * and returns it as a specific patch object (single or multi)
 	 */
-	static readFromBlob(fbuf) {
+	static readFromBlob(ext, fbuf) {
 		var patch;
-		if (fbuf[4] == _CPPD) { //F0, 42, 3g, 50   Excl Header,  4C                      Function
-			patch = new KorgSinglePatch();
-		} else if (fbuf[4] == _CCPD) {
-			patch = new KorgMultiPatch();
+		if (ext == ".syx") {
+			if (fbuf[4] == _CPPD) { //F0, 42, 3g, 50   Excl Header,  4C Function
+				patch = new KorgSinglePatch();
+			} else if (fbuf[4] == _CCPD) {
+				patch = new KorgMultiPatch();
+			} else {
+				throw `Cmd 0x${fbuf[4].toString(16)} instead of 0x${_CPPD.toString(16)} or 0x${_CCPD.toString(16)}`;
+			}
+			patch.__sd = _convertMidi2Int(fbuf.slice(6, -1));
+		} else if (ext == ".bin") {
+			if (fbuf.length == LengthOfProg) {
+				patch = new KorgSinglePatch();
+			} else if (fbuf.length == LengthOfCombi) {
+				patch = new KorgMultiPatch();
+			} else {
+				throw `Illegal length of binary file: ${fbuf.length}`;
+			}
+			patch.__sd = fbuf;
 		} else {
-			throw `Cmd 0x${fbuf[4].toString(16)} instead of 0x${_CPPD.toString(16)} or 0x${_CCPD.toString(16)}`;
-		}
-		patch.__sd = _convertMidi2Int(fbuf.slice(6, -1));
+			throw `wrong extension ${ext}`;
+		}	
 		patch._complete = true;
 		return patch;
 	}
@@ -345,10 +389,10 @@ class KorgPatch {
 			let iData;
 			if (fbuf[som+4] == _PPD) { //F0, 42, 3g, 50   Excl Header,  4C                      Function
 				btp = 'S';
-				ml = _getMidiLength(540*128);
+				ml = _getMidiLength(LengthOfProg*128);
 			} else if (fbuf[som+4] == _CPD) {
 				btp = 'M';
-				ml = _getMidiLength(448*128);
+				ml = _getMidiLength(LengthOfCombi*128);
 			} else {
 				throw `Cmd 0x${fbuf[som+4].toString(16)} instead of 0x${_PPD.toString(16)} or 0x${_CPD.toString(16)}`;
 			}
@@ -440,7 +484,7 @@ class KorgPatch {
 	_diffTo(pat, minor) {
 		let rep;
 		let minor_fail = false;
-		if (!pat) return "Comparison data undefined";
+		if (!pat) return {changed:2, text:"Comparison data undefined"};
 		if (pat.length != this.dlength) console.log(`Size mismatch: ${pat.length} instead of ${this.dlength}`);
 		let size = pat.length < this.dlength ? pat.length : this.dlength;
 		for (let ind=0; ind < size; ind ++) {
@@ -460,7 +504,7 @@ class KorgPatch {
 class KorgSinglePatch extends KorgPatch {
 	constructor () {
 		super();
-		this.dlength = 540;
+		this.dlength = LengthOfProg;
 		this._CurParDumpRequest = 0x10;
 		this._CurParDump = 0x40;
 		this._ParDumpRequest = _PPDR;
@@ -515,6 +559,8 @@ class KorgSinglePatch extends KorgPatch {
 		console.log('Valve effect parameters: ' +  vp.map(hexblock));
 		console.log('Master effect parameters: ' +  this.__sd.slice(136,154).map(hexblock));
 */
+		// change the outputs of all insert effects from 3/4 to L/R, because the valve
+		// will be forced to L/R
 		for (let ieff=16; ieff <= 112; ieff += 24) {
 			if ((this.__sd[ieff+17] & 0x80) == 0) {
 				if (this.__sd[ieff+21] = 6)
@@ -524,8 +570,9 @@ class KorgSinglePatch extends KorgPatch {
 	}
 	
 	// filter out the known changes from the valve effect
+	// and the MSBit from ST BPM Long Dly
 	diffTo(pat) {
-		const valve = [34,35,58,59,82,83,106,107,130,131];
+		const valve = [34,35,49,58,59,82,83,106,107,130,131];
 		let res = this._diffTo(pat, valve);
 		switch (res.changed) {
 			case 0:
@@ -536,12 +583,13 @@ class KorgSinglePatch extends KorgPatch {
 				return res.text;
 		}
 	}
+	isA() {return "KorgProgramPatch";}	
 }
 
 class KorgMultiPatch extends KorgPatch {
 	constructor () {
 		super();
-		this.dlength = 448;
+		this.dlength = LengthOfCombi;
 		this._CurParDumpRequest = 0x19;
 		this._CurParDump = 0x49;
 		this._ParDumpRequest = _CPDR;
@@ -588,7 +636,7 @@ class KorgMultiPatch extends KorgPatch {
 	}
 	
 	diffTo(pat) {
-		res = this._diffTo(pat);
+		let res = this._diffTo(pat);
 		switch (res.changed) {
 			case 0:
 				return "All bytes correctly compared equal";
@@ -598,6 +646,8 @@ class KorgMultiPatch extends KorgPatch {
 				return changed.text;
 		}
 	}
+	
+	isA() {return "KorgCombiPatch";}
 }
 
 exports.base = KorgPatch;
