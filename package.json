@@ -1,7 +1,7 @@
 {
   "name": "midiman",
   "homepage": "https://github.com/tommiport5/midiman#readme",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Manager for synthesizer sounds that are transmitted via MIDI sysex",
   "license": "BSD-3-Clause",
   "author": "Thomas Heckmann <tommi.port5@gmail.com> (https://port5.de)",
@@ -39,9 +39,9 @@
     "url": "https://github.com/tommiport5/midiman/issues"
   },
   "files": [
-	"images/*",
-	"proc/*",
-	"Synths/*",
-	"ui/*"
- ]
+    "images/*",
+    "proc/*",
+    "Synths/*",
+    "ui/*"
+  ]
 }
