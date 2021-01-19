@@ -24,7 +24,7 @@
   },
   "devDependencies": {},
   "scripts": {
-    "test": "echo \"Test interactively according the checklist.pdf with your preferred browser and the implemented synthesizers connected.\""
+    "test": "echo \"Serenity.js test suite in subdirectoy test.\""
   },
   "repository": {
     "type": "git",
