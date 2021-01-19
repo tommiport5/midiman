@@ -30,9 +30,15 @@ The _File_ box contains patches from files on your computer.
 You can move patches between the boxes (and the clipboard between them) with drag and drop.
 You can swap the content of the boxes with the _Swap_ button between them.
 
+## TEST
+
+There is a complete test suite with serenity.js in the 'test' directory. If you are familiar with serenity.js, you are welcome to perform the test
+in your environment. Let me know about the results and possible improvements. If you are new to serenity and want to use the test, let me know. I will
+share my experiences that resulted in the current tests.
+
 ## DEVELOPERS
 
-Contributions are welcome! Clone the project from https://github.com/tommiport5/midiman.git and add the code for your synthesizer in a new branch.
+Contributions are welcome! Open a pull request from https://github.com/tommiport5/midiman.git and add the code for your synthesizer.
 
 ## HISTORY
 1. 0.8.0 Basic functionality
