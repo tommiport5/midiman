@@ -1,6 +1,7 @@
 Test Checklist.docx
 docs/*
 images/202009_112109.jpg
+test_results
 
 # artifacts
 node_modules

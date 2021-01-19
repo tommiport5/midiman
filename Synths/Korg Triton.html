@@ -12,13 +12,13 @@ const Model = "Korg Triton";
 const SingleReadBanks = "ABCDE HIJKLMN";
 const MultiReadBanks =  "ABCDEHIJKLMN";
 const PagesPerRow = 4;
-/*
-var warn = () => setTimeout(()=>{
-	open("./KorgWarning.html","_blank");
-	window.removeEventListener(warn);
-	}, 1000);
+
+var warn = () => {
+  var popup = document.getElementById("myPopup");
+  popup.classList.toggle("show");
+	};
 window.addEventListener("load", warn);
-*/
+
 </script>
 <script src="../ui/commonui.js"></script> 
 </head>
@@ -154,5 +154,28 @@ Combinations
 </table>
 </div>
 </div>
+<div class="popup">
+<div class="popuptext" id="myPopup">
+<h1>Beware of the Triton Extreme MIDI implementation!</h1>
+<p>The Korg Triton Extreme has a "feature" that might compromise your sound programs:</p>
+<p>Whenever you send a program to the synth via MIDI, the parameters for the valve effect are set to fixed values, no matter which values are received via MIDI. The fixed values have the effect, that:</p>
+<ol>
+<li>The routing is changed, so that the valve effect is always in position "Final"</li>
+<li>The valve effect is turned off</li>
+<li>The parameters for the effect are set to questionable values</li>
+</ol>
+<p>These changes have different consequnces:</p>
+<p>1. has the most drastic effect on some sounds (e.g. the factory preset "Wah Wurly 2(SW1)"). In these presets the oscillators are routed to Bus 3/4 and so they require the valve effect to route thesignal back to the L/R output,
+or no sound can be heard. Fortunately the midiman mitigates this problem by changing th routing the oscillators to L/R in this case.</p>
+<p>2. deprives your Triton Extreme of the valve effect, which can be particularly annoying if you have stored a whole bank into the synth and don't know afterwards, which program had used this effect. Unfortunately there is nothing 
+that an external software can do about it. And since the phenomenon is observed on the latest and greatest internal version 1.06, Korg is not likely to do something about it either.</p>
+<p>3. seems the least problem, since the parameters are easily changeable via the 4 knobs, you can quickly find good settings on the instrument itself.</p>
+<h2>So what can I do?</h2>
+<p>First of all, use the MEDIA key of the synth and store all you programs on the compact flash card. Then when you start shuffling around programs with the midiman keep an eye on the valve button and remember the programs where it is lit. 
+When you have stored the memory bank, select these programs, turn the valve back on, find some decent values for the parameters with the knobs and store the programs back again.</p>
+<button type="button" onclick="warn()">Close</button>
+</div>
+</div>
+
 </body>
 </html>

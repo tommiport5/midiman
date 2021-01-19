@@ -192,8 +192,45 @@ a.button, a.button:visited {
 	border-style: outset;
 	box-shadow: 0 0 2px gray inset;
 }
-/*
+
+.popup {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.popup .popuptext{
+  visibility: hidden;
+  width: 80%;
+  background-color: #555;
+  color: #fff;
+  text-align: left;
+  border-radius: 6px;
+  padding: 8px;
+  position: relative;
+  z-index: 1;
+  bottom: 125%;
+  left: 1em;
+}
+
+.popup .show {
+  visibility: visible;
+  -webkit-animation: fadeIn 1s;
+  animation: fadeIn 1s
+}
+
+/* Add animation (fade in the popup) */
+@-webkit-keyframes fadeIn {
+  from {opacity: 0;}
+  to {opacity: 1;}
+}
+
+@keyframes fadeIn {
+  from {opacity: 0;}
+  to {opacity:1 ;}
+}
+
 .auto_test {
 	display: none;
 }
-*/
+

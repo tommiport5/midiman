@@ -1,8 +1,8 @@
 import 'jasmine';
 
-import { Ensure, includes, property, isGreaterThan, Check, equals, not } from '@serenity-js/assertions';
-import { actorCalled, Duration, engage, Log, Loop, TakeNote, TakeNotes, Task } from '@serenity-js/core';
-import { Navigate, Website, Target, Click, Switch, Text, Enter, Wait, Attribute, Pick, DoubleClick, TakeScreenshot } from '@serenity-js/protractor';
+import { Ensure, includes, property, isGreaterThan, Check, equals, not, Expectation, or } from '@serenity-js/assertions';
+import { actorCalled, Duration, engage, Log, Loop, Question, Task } from '@serenity-js/core';
+import { Navigate, Website, Target, Click, Switch, Text, Enter, Wait, Attribute, Pick, DoubleClick } from '@serenity-js/protractor';
 import { by, ElementArrayFinder, ElementFinder } from 'protractor';
 import {Actors} from '../src';
 import * as helpers from '../src/helpers';
@@ -46,7 +46,7 @@ const FirstSynthPatch = Pick.from<ElementFinder, ElementArrayFinder>(SynthCommon
 
 
 
-const readSoundFile = (SoundFileName) =>
+const readSoundFile = (SoundFileName: Question<Promise<string>>) =>
 	Task.where(`#actor reads a file of sound patches`,
 			Enter.theValue(SoundFileName).into(SynthCommon.InputFileName),	
 			Click.on(SynthCommon.ReadFileButton),
@@ -86,7 +86,9 @@ const testMultiPatchTransfer = (BankButtons: TargetNestedElements, Patches: Targ
 						Wait.for(Duration.ofSeconds(1)),
 						Click.on(SynthCommon.TestButton),
 						Wait.until(Text.of(SynthCommon.Result), not(equals(''))),
-						Ensure.that(Text.of(SynthCommon.Result), (includes('compared equ'))),
+						Ensure.that(Text.of(SynthCommon.Result), Expectation.to('pass').soThatActual(or(
+															includes('compared equ'),
+															includes('version changed')))),
 //							.andIfSo(
 //								Log.the(Text.of(Loop.item()), Text.of(SynthCommon.Result)),
 //						),
@@ -107,7 +109,7 @@ const compareMemory = (BankButtons: TargetNestedElements, Patches: TargetNestedE
 						Wait.upTo(Duration.ofSeconds(5)).until(Text.of(SynthCommon.Result), includes('Ok')),
 						Click.on(SynthCommon.CompareButton),
 						Wait.until(Text.of(SynthCommon.Result), not(equals(''))),
-						Ensure.that(Text.of(SynthCommon.Result), (includes('compared equal'))),
+						Ensure.that(Text.of(SynthCommon.Result), includes('compared equal')),
 //							.andIfSo(
 //								Log.the(Text.of(Loop.item()), Text.of(SynthCommon.Result)),
 //						),
@@ -123,7 +125,7 @@ describe('Midi Patch Manager', () => {
     beforeEach(() => engage(new Actors()));
 
 
-	xit(`gives us a choice of synths`, () =>
+	it(`gives us a choice of synths`, () =>
         actorCalled('Jasmine')
 			.attemptsTo(
 		        Navigate.to('http://localhost:10532/index.html'),
@@ -140,7 +142,7 @@ describe('Midi Patch Manager', () => {
 			)
 	);
 
-	xit('safely sends and receives Roland patches', () =>
+	it('safely sends and receives Roland patches', () =>
         actorCalled('Jasmine')
 		.attemptsTo(
             Navigate.to('http://localhost:10532/Synths/Roland D50.html'),
@@ -148,7 +150,7 @@ describe('Midi Patch Manager', () => {
 			testSimplePatchTransfer(SynthRoland.FilePatches),
         ));
 
-	xit('safely sends and receives access patches', () =>
+	it('safely sends and receives access patches', () =>
         actorCalled('Jasmine')
 		.attemptsTo(
             Navigate.to('http://localhost:10532/Synths/access virus b.html'),
@@ -156,19 +158,18 @@ describe('Midi Patch Manager', () => {
  			testMultiPatchTransfer(SynthCommon.FileBankButtons, SynthCommon.FilePatches),
        ));
 
+/*
 	xit('compares received Korg patches to the stored values', () =>
         actorCalled('Jasmine')
-		.whoCan(TakeNotes.usingASharedNotepad())
 		.attemptsTo(
             Navigate.to('http://localhost:10532/Synths/Korg Triton.html'),	
 			readSoundFile(helpers.getConfigString(Website.title(), 'sysex')),
 			Click.on(SynthCommon.SwapButton),
 			compareMemory(SynthCommon.SynthBankButtons, SynthCommon.SynthPatches),
        ));
-
+*/
 	it('safely sends and receives Korg patches', () =>
         actorCalled('Jasmine')
-		.whoCan(TakeNotes.usingASharedNotepad())
 		.attemptsTo(
             Navigate.to('http://localhost:10532/Synths/Korg Triton.html'),	
 			readSoundFile(helpers.getConfigString(Website.title(), 'sysex')),
